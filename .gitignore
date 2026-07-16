@@ -1,0 +1,17 @@
+node_modules/
+
+# Runtime data — never commit real ideas, members, sessions, uploads
+data/*.json
+!data/*.example.json
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Secrets & local env
+.env
+.env.local
+
+*.log
+*.bak-*
+.DS_Store
+._*
+.vercel

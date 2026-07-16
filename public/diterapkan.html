@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sudah Diterapkan — Idea Wall Antarestar</title>
+<meta name="theme-color" content="#FF6B2B">
+<link rel="icon" href="/assets/antarestar-logo.jpg">
+<link rel="stylesheet" href="/assets/app.css?v=17">
+<style>
+  .hof-intro { padding: 16px 16px 6px; }
+  .hof-intro h1 { font-size: 21px; font-weight: 900; letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; }
+  .hof-intro p { color: var(--muted); font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .hof-card { padding: 0; overflow: hidden; }
+  .hof-card .pad { padding: 14px 15px; }
+  .hof-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .hof-name { font-weight: 800; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hof-time { font-size: 11.5px; color: var(--faint); font-weight: 600; }
+  .hof-text { font-size: 14px; font-weight: 500; line-height: 1.5; color: var(--text); }
+  .hof-impact { margin-top: 10px; font-size: 13px; font-weight: 700; color: #15663a; background: rgba(31,168,91,0.10); border-left: 4px solid #1FA85B; border-radius: 8px; padding: 9px 12px; }
+  .hof-pic { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .hof-img { width: 100%; display: block; }
+  .done-pill { margin-left: auto; flex-shrink: 0; font-size: 11px; font-weight: 800; color: #15663a; background: rgba(31,168,91,0.14); border-radius: 999px; padding: 4px 10px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="head">
+      <a class="brand" href="/" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><span id="brand-slot"></span></a>
+      <div style="flex:1;min-width:0;"></div>
+      <span id="notif-slot"></span>
+      <a class="head-icon" href="/" title="Feed" style="text-decoration:none;">🏠</a>
+      <span id="menu-slot"></span>
+    </header>
+    <div class="hof-intro">
+      <h1>🏅 Sudah Diterapkan</h1>
+      <p>Ide-ide tim yang udah jadi nyata. Bukti tiap ide didengar &amp; ditindaklanjuti.</p>
+    </div>
+    <main class="feed" id="grid"><div class="empty">Memuat…</div></main>
+  </div>
+
+  <script src="/assets/app.js?v=17"></script>
+  <script>
+  (function () {
+    const { esc, avatarHTML, formatTime, pad4, attachMenu, brandLockup, lightbox, attachNotifBell } = window.IW;
+    document.getElementById('brand-slot').innerHTML = brandLockup({ tile: 34, fontSize: 17 });
+    document.getElementById('menu-slot').appendChild(attachMenu([
+      { icon: '💡', label: 'Kirim Ide', href: '/form' },
+      { icon: '🏆', label: 'Leaderboard', href: '/leaderboard' },
+      { icon: '👤', label: 'Profil Saya', href: '/profile' },
+      { sep: true },
+      { icon: '📺', label: 'Tampilan TV', href: '/tv' },
+      { icon: '🔒', label: 'Admin', href: '/admin' },
+    ]));
+    document.getElementById('notif-slot').appendChild(attachNotifBell());
+    const grid = document.getElementById('grid');
+    const CAT = { ide_perbaikan: { e: '💡', t: 'Ide Perbaikan' }, sports_day: { e: '🏆', t: 'Sports Day' } };
+
+    function cardHTML(d) {
+      const cat = CAT[d.category] || CAT.ide_perbaikan;
+      const img = d.photo ? `<img class="hof-img" src="${esc(d.photo)}" alt="Foto ide" data-photo="${esc(d.photo)}" loading="lazy" decoding="async">` : '';
+      return `<article class="card hof-card">
+        ${img}
+        <div class="pad">
+          <div class="hof-head">
+            ${avatarHTML(d, 36)}
+            <div style="flex:1;min-width:0;">
+              <div class="hof-name">${esc(d.name)}</div>
+              <div class="hof-time">${cat.e} ${cat.t} · ${formatTime(d.ts)}</div>
+            </div>
+            <span class="done-pill">✅ Selesai</span>
+          </div>
+          <p class="hof-text">${esc(d.text)}</p>
+          ${d.impact ? `<div class="hof-impact">🏁 ${esc(d.impact)}</div>` : ''}
+          <div class="hof-pic">${d.pic ? '👤 PIC: ' + esc(d.pic) + ' · ' : ''}#${pad4(d.id)}</div>
+        </div>
+      </article>`;
+    }
+
+    grid.addEventListener('click', e => { const p = e.target.closest('[data-photo]'); if (p) lightbox(p.dataset.photo); });
+
+    fetch('/api/ideas').then(r => r.json()).then(d => {
+      const done = (d.ideas || []).filter(i => i.status === 'done').sort((a, b) => b.ts - a.ts);
+      if (!done.length) { grid.innerHTML = '<div class="empty" style="padding:50px 20px;">Belum ada ide yang diterapkan. Pantau terus ya! ✨</div>'; return; }
+      grid.innerHTML = done.map(cardHTML).join('');
+    }).catch(() => { grid.innerHTML = '<div class="empty">Gagal memuat.</div>'; });
+  })();
+  </script>
+</body>
+</html>

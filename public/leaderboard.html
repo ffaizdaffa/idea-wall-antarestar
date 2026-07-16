@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Leaderboard — Idea Wall Antarestar</title>
+<meta name="theme-color" content="#FF6B2B">
+<link rel="icon" href="/assets/antarestar-logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="/assets/app.css?v=17">
+<style>
+  .lb-wrap { max-width: 520px; margin: 0 auto; padding: 4px 14px 90px; }
+
+  .lb-head { display: flex; align-items: center; gap: 10px; padding: 16px 2px 6px; }
+  .lb-back { font-size: 22px; text-decoration: none; color: var(--text); line-height: 1; flex-shrink: 0; }
+  .lb-title { font-size: 20px; font-weight: 900; color: var(--text); letter-spacing: -.02em; }
+  .lb-sub { color: var(--muted); font-size: 13px; font-weight: 600; padding: 0 2px 14px; }
+
+  /* period tabs */
+  .lb-tabs { display: flex; gap: 6px; padding: 0 2px 18px; }
+  .lb-tabs button {
+    flex: 1; border: 1.5px solid var(--border); background: var(--card);
+    color: var(--muted); font-weight: 700; font-size: 12.5px; font-family: inherit;
+    padding: 9px 4px; border-radius: 999px; cursor: pointer; transition: all .15s;
+  }
+  .lb-tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── podium ── */
+  .podium {
+    display: none; align-items: flex-end; justify-content: center; gap: 10px;
+    background: linear-gradient(180deg, var(--accent) 0%, #FF7E3D 60%, var(--navy) 100%);
+    border-radius: 20px; padding: 22px 14px 0; margin-bottom: 18px; overflow: hidden;
+  }
+  .podium.show { display: flex; }
+  .pod { display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 130px; }
+  .pod .medal { font-size: 22px; line-height: 1; margin-bottom: 4px; }
+  .pod.first .medal { font-size: 28px; }
+  .pod .av {
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; background-size: cover; background-position: center;
+    border: 3px solid rgba(255,255,255,.6); box-shadow: 0 6px 16px rgba(0,0,0,.2);
+  }
+  .pod .av { width: 52px; height: 52px; font-size: 17px; }
+  .pod.first .av { width: 66px; height: 66px; font-size: 22px; border-color: #fff; }
+  .pod .nm { font-weight: 800; font-size: 12.5px; color: #fff; margin-top: 7px; text-align: center;
+    max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pod .pts { font-size: 11px; color: rgba(255,255,255,.8); font-weight: 700; margin-top: 1px; }
+  .pod .bar {
+    width: 100%; margin-top: 10px; border-radius: 8px 8px 0 0;
+    display: grid; place-items: center; color: rgba(255,255,255,.92); font-weight: 900;
+  }
+  .pod.first .bar  { height: 80px; background: linear-gradient(180deg,#FFD700,#F4B82E); font-size: 22px; }
+  .pod.second .bar { height: 60px; background: linear-gradient(180deg,#E2E2E8,#B8BCC6); font-size: 18px; }
+  .pod.third .bar  { height: 46px; background: linear-gradient(180deg,#E9B788,#C8824C); font-size: 18px; }
+
+  /* ── full list ── */
+  .lb-list { display: flex; flex-direction: column; gap: 9px; }
+  .lb-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; background: var(--card);
+    border: 1.5px solid var(--border); border-radius: 14px;
+    text-decoration: none; transition: transform .12s, box-shadow .12s;
+  }
+  .lb-row:hover { transform: translateY(-1px); box-shadow: var(--shadow-card); }
+  .lb-row.me { border-color: var(--accent); background: var(--accent-lt, #FFF3EE); }
+  .lb-rank { font-weight: 900; font-size: 15px; color: var(--faint); width: 24px; text-align: center; flex-shrink: 0; }
+  .lb-rank.top { font-size: 18px; }
+  .lb-av {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 15px; background-size: cover; background-position: center;
+  }
+  .lb-info { flex: 1; min-width: 0; }
+  .lb-name { font-weight: 700; font-size: 14.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-meta { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .lb-pts { font-weight: 900; font-size: 16px; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+  .lb-pts span { font-size: 11px; color: var(--faint); font-weight: 600; }
+  .lb-empty { text-align: center; color: var(--muted); padding: 60px 20px; font-weight: 600; }
+
+  /* mode toggle: kontributor ide vs employee of the month */
+  .lb-mode { display: flex; gap: 8px; padding: 6px 2px 14px; }
+  .lb-mode button { flex: 1; border: 1.5px solid var(--border); background: var(--card); color: var(--muted);
+    font-weight: 800; font-size: 13px; font-family: inherit; padding: 11px 6px; border-radius: 12px; cursor: pointer; transition: all .15s; }
+  .lb-mode button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .eotm-banner { background: linear-gradient(135deg,#FFF3DF,#FFE7C2); border: 1px solid #F4C98A; border-radius: 18px;
+    padding: 22px 18px; text-align: center; margin-bottom: 16px; }
+  .eotm-banner .crown { font-size: 42px; line-height: 1; }
+  .eotm-banner .wname { font-weight: 900; font-size: 25px; margin-top: 6px; letter-spacing: -.01em; }
+  .eotm-banner .wsub { font-weight: 700; font-size: 13px; color: #8A5410; margin-top: 6px; }
+  .eotm-statusline { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; color: var(--muted); padding: 2px 2px 14px; }
+  .eotm-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .eotm-dot.live { background: var(--green); animation: blink 1.4s ease-in-out infinite; }
+  .eotm-dot.off { background: var(--faint); }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+  .ev-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--card);
+    border: 1.5px solid var(--border); border-radius: 14px; margin-bottom: 9px; }
+  .ev-rank { font-weight: 900; font-size: 15px; color: var(--faint); width: 24px; text-align: center; flex-shrink: 0; }
+  .ev-rank.top { font-size: 18px; }
+  .ev-info { flex: 1; min-width: 0; }
+  .ev-name { font-weight: 800; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev-cv { font-size: 11.5px; color: var(--muted); font-weight: 700; margin-top: 2px; }
+  .ev-bar { height: 7px; border-radius: 5px; background: var(--bg); overflow: hidden; margin-top: 6px; }
+  .ev-bar i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg,var(--accent),#FF9A4D); }
+  .ev-votes { font-weight: 900; font-size: 17px; color: var(--accent); flex-shrink: 0; }
+  .ev-votes span { font-size: 11px; color: var(--faint); font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <a class="brand" href="/">
+      <span class="logo-tile" style="width:34px;height:34px;border-radius:9px;padding:3px;">
+        <img src="/assets/antarestar-logo.jpg" alt="Antarestar">
+      </span>
+      <span class="brand-word">Antarestar <span>Idea</span></span>
+    </a>
+    <div style="flex:1;min-width:0;"></div>
+    <span id="notif-slot"></span>
+    <a class="head-icon" href="/" title="Feed" style="text-decoration:none;">🏠</a>
+    <span id="menu-slot"></span>
+  </div>
+
+  <div class="lb-wrap">
+    <div class="lb-head">
+      <a class="lb-back" href="/" aria-label="Kembali">←</a>
+      <span class="lb-title">🏆 Leaderboard</span>
+    </div>
+
+    <div class="lb-mode" id="lb-mode">
+      <button class="on" data-mode="ide">🏆 Kontributor Ide</button>
+      <button data-mode="eotm">⭐ Employee of the Month</button>
+    </div>
+
+    <div id="ide-view">
+      <div class="lb-sub">Kontributor ide terbaik — poin dari suka, jumlah ide & komentar.</div>
+
+      <div class="lb-tabs" id="lb-tabs">
+        <button class="on" data-period="all">Semua</button>
+        <button data-period="month">Bulan Ini</button>
+        <button data-period="week">Minggu Ini</button>
+        <button data-period="day">Hari Ini</button>
+      </div>
+
+      <div id="podium" class="podium"></div>
+      <div id="list" class="lb-list"><div class="lb-empty">Memuat…</div></div>
+    </div>
+
+    <div id="eotm-view" style="display:none;"></div>
+  </div>
+
+  <script src="/assets/app.js?v=17"></script>
+  <script>
+  (function () {
+    const { esc, initials, attachMenu, attachNotifBell, badgesHTML, eotmWinnerSet } = window.IW;
+    var winnerSet = new Set(); var eotmHistory = [];
+
+    document.getElementById('menu-slot').appendChild(attachMenu([
+      { icon: '💡', label: 'Kirim Ide', href: '/form' },
+      { icon: '🏅', label: 'Sudah Diterapkan', href: '/diterapkan' },
+      { icon: '👤', label: 'Profil Saya', href: '/profile' },
+      { sep: true },
+      { icon: '📺', label: 'Tampilan TV', href: '/tv' },
+      { icon: '🔒', label: 'Admin', href: '/admin' },
+    ]));
+    document.getElementById('notif-slot').appendChild(attachNotifBell());
+
+    const MEDAL = ['🥇', '🥈', '🥉'];
+    const GRAD = [
+      'linear-gradient(135deg,#FF6B2B,#FF9A4D)', 'linear-gradient(135deg,#1A6BFF,#5C97FF)',
+      'linear-gradient(135deg,#1FA85B,#5FD08C)', 'linear-gradient(135deg,#E5484D,#FF7A7E)',
+      'linear-gradient(135deg,#7C3AED,#A47BF0)', 'linear-gradient(135deg,#0EA5A5,#5FD0C8)',
+    ];
+    function colorFor(seed) {
+      let h = 0; const s = String(seed || '');
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+      return GRAD[h % GRAD.length];
+    }
+    function avInner(r) { return r.avatar ? '' : esc(initials(r.name)); }
+    function avStyle(r) { return r.avatar ? "background-image:url('" + esc(r.avatar) + "');" : 'background:' + colorFor(r.name || r.username || String(r.rank)) + ';'; }
+
+    function renderPodium(rows) {
+      const podEl = document.getElementById('podium');
+      if (rows.length < 3) { podEl.className = 'podium'; podEl.innerHTML = ''; return; }
+      const top = rows.slice(0, 3);
+      const order = [{ r: top[1], cls: 'second' }, { r: top[0], cls: 'first' }, { r: top[2], cls: 'third' }];
+      podEl.className = 'podium show';
+      podEl.innerHTML = order.map(function (o) {
+        const r = o.r;
+        return '<div class="pod ' + o.cls + '">'
+          + '<div class="medal">' + MEDAL[r.rank - 1] + '</div>'
+          + '<div class="av" style="' + avStyle(r) + '">' + avInner(r) + '</div>'
+          + '<div class="nm">' + esc(r.name.split(' ')[0]) + '</div>'
+          + '<div class="pts">' + r.points + ' pts</div>'
+          + '<div class="bar">' + r.rank + '</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    function rowHTML(r, meId) {
+      const isMe = meId && r.memberId === meId;
+      const href = r.username ? '/profile?u=' + encodeURIComponent(r.username) : '#';
+      return '<a class="lb-row' + (isMe ? ' me' : '') + '" href="' + href + '">'
+        + '<div class="lb-rank' + (r.rank <= 3 ? ' top' : '') + '">' + (r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank) + '</div>'
+        + '<div class="lb-av" style="' + avStyle(r) + '">' + avInner(r) + '</div>'
+        + '<div class="lb-info"><div class="lb-name">' + esc(r.name) + ' ' + badgesHTML({ ideas: r.ideas, likes: r.likes, comments: r.comments, wonEotm: winnerSet.has(String(r.name || '').trim().toLowerCase()) }, true) + '</div>'
+        + '<div class="lb-meta">' + r.ideas + ' ide · ' + r.likes + ' suka</div></div>'
+        + '<div class="lb-pts">' + r.points + '<span> pts</span></div>'
+        + '</a>';
+    }
+
+    let meId = null;
+    const listEl = document.getElementById('list');
+    const podEl = document.getElementById('podium');
+
+    function load(period) {
+      listEl.innerHTML = '<div class="lb-empty">Memuat…</div>';
+      podEl.className = 'podium'; podEl.innerHTML = '';
+      fetch('/api/leaderboard?period=' + period).then(r => r.json()).catch(() => ({ rows: [] }))
+        .then(function (data) {
+          const rows = (data && data.rows) || [];
+          if (!rows.length) { listEl.innerHTML = '<div class="lb-empty">Belum ada kontributor di periode ini. 💡</div>'; return; }
+          renderPodium(rows);
+          listEl.innerHTML = rows.map(function (r) { return rowHTML(r, meId); }).join('');
+        });
+    }
+
+    document.getElementById('lb-tabs').addEventListener('click', function (e) {
+      const btn = e.target.closest('button[data-period]');
+      if (!btn) return;
+      [...this.querySelectorAll('button')].forEach(b => b.classList.toggle('on', b === btn));
+      load(btn.dataset.period);
+    });
+
+    /* ===== Employee of the Month board ===== */
+    function cvLabel(s, key) { var cv = (s.coreValues || []).find(function (c) { return c.key === key; }); return cv ? (cv.emoji + ' ' + cv.label) : key; }
+    function renderEotmBoard() {
+      var box = document.getElementById('eotm-view');
+      box.innerHTML = '<div class="lb-empty">Memuat…</div>';
+      fetch('/api/eotm').then(function (r) { return r.json(); }).then(function (s) {
+        var open = s.status === 'open';
+        var rows = s.tally || [];
+        var max = rows.length ? rows[0].votes : 1;
+        var html = '';
+        var champHTML = '';
+        if (s.history && s.history.length) {
+          champHTML = '<div class="champ-sec"><div class="champ-h">🏅 Hall of Champions</div>' + s.history.map(function (h) {
+            var w = h.winner || {};
+            var nm = w.mode === 'per_value' ? 'Juara per Core Value' : (w.name || '-');
+            var sub = w.mode === 'per_value'
+              ? Object.keys(w.perValue || {}).filter(function (k) { return w.perValue[k]; }).map(function (k) { return cvLabel(s, k) + ': ' + esc(w.perValue[k].name); }).join(' · ')
+              : ((w.votes || 0) + ' suara');
+            return '<div class="champ-row"><span class="crown">👑</span><div style="min-width:0;"><div class="nm">' + esc(nm) + '</div><div class="sub">' + sub + '</div></div><span class="rd">' + esc(h.title || '') + '</span></div>';
+          }).join('') + '</div>';
+        }
+        if (!open && s.winner && s.winner.mode === 'per_value') {
+          html += '<div class="eotm-banner"><div class="crown">🏆</div><div class="wname">Juara per Core Value</div><div class="wsub">' + esc(s.title || '') + ' · ' + (s.winner.total || 0) + ' suara</div></div>';
+          (s.coreValues || []).forEach(function (cv) {
+            var w = s.winner.perValue && s.winner.perValue[cv.key];
+            html += '<div class="ev-row"><div class="ev-info"><div class="ev-name">' + cv.emoji + ' ' + esc(cv.label) + '</div></div><div class="ev-votes">' + (w ? esc(w.name) + ' <span>(' + w.votes + ')</span>' : '—') + '</div></div>';
+          });
+          box.innerHTML = html + champHTML; return;
+        }
+        if (!open && s.winner) {
+          var bv = Object.entries(s.winner.byValue || {}).sort(function (a, b) { return b[1] - a[1]; })[0];
+          html += '<div class="eotm-banner"><div class="crown">👑</div><div class="wname">' + esc(s.winner.name) + '</div>'
+            + '<div class="wsub">Employee of the Month · ' + esc(s.title || '') + ' — ' + s.winner.votes + ' suara' + (bv ? ' · ' + cvLabel(s, bv[0]) : '') + '</div></div>';
+        }
+        html += '<div class="eotm-statusline"><span class="eotm-dot ' + (open ? 'live' : 'off') + '"></span>'
+          + (open ? 'Voting BERLANGSUNG' : 'Voting ditutup') + ' · ' + esc(s.title || '') + ' · ' + (s.totalVotes || 0) + ' suara</div>';
+        if (!rows.length) { box.innerHTML = html + '<div class="lb-empty">Belum ada suara. Buka Kirim Ide → ⭐ Employee of the Month untuk vote.</div>' + champHTML; return; }
+        html += rows.map(function (r) {
+          var byVal = Object.entries(r.byValue || {}).sort(function (a, b) { return b[1] - a[1]; })[0];
+          var pct = Math.round(r.votes / max * 100);
+          var medal = r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank;
+          return '<div class="ev-row"><div class="ev-rank' + (r.rank <= 3 ? ' top' : '') + '">' + medal + '</div>'
+            + '<div class="ev-info"><div class="ev-name">' + esc(r.name) + '</div>'
+            + (byVal ? '<div class="ev-cv">' + cvLabel(s, byVal[0]) + '</div>' : '')
+            + '<div class="ev-bar"><i style="width:' + pct + '%"></i></div></div>'
+            + '<div class="ev-votes">' + r.votes + '<span> suara</span></div></div>';
+        }).join('');
+        box.innerHTML = html + champHTML;
+      }).catch(function () { box.innerHTML = '<div class="lb-empty">Gagal memuat voting.</div>'; });
+    }
+
+    var mode = 'ide';
+    document.getElementById('lb-mode').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-mode]'); if (!btn) return;
+      mode = btn.dataset.mode;
+      [].forEach.call(this.querySelectorAll('button'), function (b) { b.classList.toggle('on', b === btn); });
+      document.getElementById('ide-view').style.display = mode === 'ide' ? '' : 'none';
+      document.getElementById('eotm-view').style.display = mode === 'eotm' ? '' : 'none';
+      if (mode === 'eotm') renderEotmBoard();
+    });
+    try {
+      var _es = new EventSource('/api/stream');
+      var _eotmDeb = null;
+      _es.addEventListener('eotm', function () { if (mode !== 'eotm') return; clearTimeout(_eotmDeb); _eotmDeb = setTimeout(renderEotmBoard, 1500); });
+    } catch (e) { /* ignore */ }
+
+    fetch('/api/eotm').then(r => r.json()).catch(() => ({ history: [] })).then(function (e) {
+      winnerSet = eotmWinnerSet(e.history || []); eotmHistory = e.history || [];
+    }).then(function () {
+      return fetch('/api/member/me').then(r => r.json()).catch(() => ({}));
+    }).then(function (me) {
+      meId = me && me.member ? me.member.id : null;
+      load('all');
+    });
+  })();
+  </script>
+</body>
+</html>

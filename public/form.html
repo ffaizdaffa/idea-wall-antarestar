@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Bagikan Ide — Idea Wall Antarestar</title>
+<meta name="theme-color" content="#FF6B2B">
+<link rel="icon" href="/assets/antarestar-logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="/assets/app.css?v=13">
+<style>
+  .form-top { display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--card); border-bottom:1px solid var(--border); }
+  .form-top .back { font-size:22px; color:var(--muted); }
+  .form-top .title { flex:1; text-align:center; font-weight:800; font-size:17px; }
+  .form-top .spacer { width:22px; }
+  .form-wrap { padding:16px 14px 40px; display:flex; flex-direction:column; gap:16px; }
+  .form-hello { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border-radius:16px;
+    background:linear-gradient(135deg, rgba(255,107,43,0.10), rgba(255,154,77,0.10)); border:1px solid rgba(255,107,43,0.25); }
+  .form-hello .fh-ic { font-size:26px; line-height:1; flex-shrink:0; }
+  .form-hello b { font-size:15px; color:var(--text); }
+  .form-hello .fh-sub { font-size:12.5px; color:var(--muted); font-weight:600; line-height:1.45; margin-top:3px; }
+  .user-pill { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--card);
+    border-radius:999px; border:1px solid var(--border); box-shadow:var(--shadow-card); }
+  .user-pill .who { font-size:13.5px; color:var(--muted); font-weight:600; }
+  .user-pill .who b { color:var(--text); }
+  .form-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow-card);
+    padding:18px 16px; display:flex; flex-direction:column; gap:16px; }
+  .lbl { font-weight:700; font-size:14px; color:var(--text); margin-bottom:8px; }
+  .lbl .req { color:var(--red); }
+  .lbl .opt { font-weight:500; color:var(--faint); font-size:12.5px; }
+  .ta {
+    width:100%; min-height:130px; border-radius:13px; border:1.5px solid var(--border);
+    background:var(--card); color:var(--text); padding:12px 14px; font-size:14.5px; font-weight:500;
+    resize:none; outline:none; line-height:1.5;
+  }
+  .ta:focus { border-color:var(--accent); }
+  .counter { text-align:right; font-size:12px; font-weight:700; color:var(--faint); margin-top:4px; }
+  .counter.warn { color:var(--accent); }
+  .counter.over { color:var(--red); }
+  .drop {
+    border:2px dashed var(--border); border-radius:13px; padding:20px 16px; text-align:center;
+    background:var(--bg); transition:border-color .15s ease, background .15s ease; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+  }
+  .drop.drag { border-color:var(--accent); background:rgba(255,107,43,0.06); }
+  .drop .ic { font-size:26px; }
+  .drop .t1 { font-weight:700; font-size:14.5px; color:var(--text); }
+  .drop .t2 { font-weight:600; font-size:12px; color:var(--muted); }
+  .preview { position:relative; border-radius:13px; overflow:hidden; }
+  .preview img { width:100%; display:block; }
+  .preview .rm { position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:50%;
+    border:none; background:rgba(0,0,0,0.65); color:#fff; font-size:14px; display:grid; place-items:center; }
+  .success {
+    position:fixed; inset:0; background:var(--card); z-index:60;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:32px 24px; gap:14px;
+  }
+  .success .em { font-size:52px; }
+  .success h2 { font-weight:900; font-size:28px; letter-spacing:-0.01em; }
+  .success p { font-size:15px; line-height:1.5; color:var(--muted); max-width:280px; }
+  .success .row { display:flex; gap:12px; margin-top:8px; width:100%; max-width:320px; }
+  .success .row a, .success .row button { flex:1; height:48px; border-radius:999px; font-weight:800; font-size:15px;
+    display:flex; align-items:center; justify-content:center; text-decoration:none; }
+  .guest-note { font-size:12.5px; color:var(--faint); font-weight:600; padding:0 2px; }
+  .guest-note a { color:var(--accent); font-weight:800; }
+  /* kategori toggle */
+  .cat-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .cat-opt { display:flex; align-items:center; gap:10px; padding:13px 14px; border:2px solid var(--border);
+    border-radius:14px; cursor:pointer; background:var(--card); transition:all .15s; user-select:none; }
+  .cat-opt .cic { font-size:22px; line-height:1; }
+  .cat-opt .ctx { font-weight:800; font-size:14px; color:var(--text); }
+  .cat-opt.on { border-color:var(--accent); background:rgba(255,107,43,0.07); box-shadow:0 2px 10px rgba(255,107,43,0.12); }
+  .cat-opt.sports.on { border-color:var(--blue); background:rgba(26,107,255,0.07); box-shadow:0 2px 10px rgba(26,107,255,0.12); }
+  .cat-opt.eotm.on { border-color:#C77A1A; background:rgba(199,122,26,0.08); box-shadow:0 2px 10px rgba(199,122,26,0.14); }
+  .cat-row .span-all { grid-column:1 / -1; }
+  /* EOTM voting fields */
+  .vote-input { width:100%; height:50px; border-radius:13px; border:1.5px solid var(--border); background:var(--card);
+    color:var(--text); padding:0 14px; font-size:15px; font-weight:600; font-family:inherit; outline:none; }
+  .vote-input:focus { border-color:var(--accent); }
+  .cv-row { display:flex; flex-wrap:wrap; gap:8px; }
+  .cv { border:1.5px solid var(--border); background:var(--card); color:var(--text); font-weight:700; font-size:13px;
+    padding:9px 13px; border-radius:999px; font-family:inherit; cursor:pointer; transition:all .15s; }
+  .cv.on { border-color:#C77A1A; background:rgba(199,122,26,0.10); color:#9A5E12; }
+  /* employee search picker */
+  .emp-pick { position:relative; }
+  .emp-pick.ok .vote-input { border-color:var(--green); background:rgba(31,168,91,0.05); }
+  .emp-dd { position:absolute; left:0; right:0; top:54px; background:var(--card); border:1.5px solid var(--border);
+    border-radius:13px; box-shadow:0 14px 34px rgba(16,18,24,0.16); max-height:266px; overflow-y:auto; z-index:30; }
+  .emp-opt { padding:11px 14px; font-size:14.5px; font-weight:600; color:var(--text); cursor:pointer; border-bottom:1px solid var(--border); }
+  .emp-opt:last-child { border-bottom:none; }
+  .emp-opt:active, .emp-opt.act { background:rgba(255,107,43,0.10); }
+  .emp-opt b { color:var(--accent); }
+  .emp-empty { padding:14px; color:var(--faint); font-size:13px; font-weight:600; }
+  .eotm-note { padding:12px 14px; border-radius:12px; font-size:13px; font-weight:600; line-height:1.5; }
+  .eotm-note.gate { background:rgba(199,122,26,0.10); color:#8A5410; }
+  .eotm-note.gate a { color:var(--accent); font-weight:800; }
+  .eotm-note.closed { background:var(--bg); color:var(--muted); }
+  .eotm-note.voted { background:rgba(31,168,91,0.10); color:#15663a; }
+  .eotm-live .h { font-weight:800; font-size:13px; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+  .eotm-live .card { background:var(--card); border:1px solid var(--border); border-radius:13px; box-shadow:var(--shadow-card); padding:6px 14px; }
+  .elv { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .elv:last-child { border-bottom:none; }
+  .elv .r { width:20px; font-weight:900; color:var(--faint); text-align:center; flex-shrink:0; }
+  .elv .r.top { color:var(--accent); }
+  .elv .n { flex:1; font-weight:700; font-size:14px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .elv .v { font-weight:900; font-size:14px; color:var(--accent); flex-shrink:0; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div id="root">
+      <div class="form-top">
+        <a href="/" class="back">←</a>
+        <span class="title">Kirim Ide Baru</span>
+        <span class="spacer"></span>
+      </div>
+      <div class="form-wrap">
+        <div class="form-hello">
+          <span class="fh-ic">💡</span>
+          <div><b>Tambahkan idemu di sini!</b><div class="fh-sub">Ide perbaikan, Sports Day, atau vote Employee of the Month — sekecil apa pun, idemu berharga ✨</div></div>
+        </div>
+        <div class="user-pill" id="user-pill">
+          <div class="avatar" style="width:32px;height:32px;font-size:12px;background:linear-gradient(135deg,#FF6B2B,#FF9A4D);">FA</div>
+          <span class="who" id="who">Kirim sebagai <b>Tamu</b></span>
+        </div>
+        <div class="guest-note" id="guest-note" style="display:none;">Kamu posting sebagai tamu. <a href="/login">Masuk</a> untuk simpan ide ke profilmu.</div>
+
+        <form id="idea-form" class="form-card">
+          <input class="field" id="f-name" placeholder="Nama kamu" style="display:none;" maxlength="60">
+
+          <div>
+            <div class="lbl">Kategori <span class="req">*</span></div>
+            <div class="cat-row" id="cat-row">
+              <div class="cat-opt on" data-cat="ide_perbaikan"><span class="cic">💡</span><span class="ctx">Ide Perbaikan</span></div>
+              <div class="cat-opt sports" data-cat="sports_day"><span class="cic">🏆</span><span class="ctx">Sports Day</span></div>
+              <div class="cat-opt eotm span-all" data-cat="eotm"><span class="cic">⭐</span><span class="ctx">Employee of the Month</span></div>
+            </div>
+          </div>
+
+          <div id="idea-block">
+            <div>
+              <div class="lbl">Idemu <span class="req">*</span></div>
+              <textarea class="ta" id="f-text" placeholder="Ceritakan idemu secara detail... semakin detail semakin bagus! ✨" maxlength="500"></textarea>
+              <div class="counter" id="counter">0/500</div>
+            </div>
+
+            <div style="margin-top:16px;">
+              <div class="lbl">Foto <span class="opt">(opsional)</span></div>
+              <div class="drop" id="drop">
+                <div class="ic">📸</div>
+                <div class="t1">Klik atau drag foto</div>
+                <div class="t2">JPG/PNG — otomatis dikompres</div>
+              </div>
+              <input type="file" id="file" accept="image/*" hidden>
+              <div class="preview" id="preview" style="display:none;"><img id="preview-img" alt="Preview"><button type="button" class="rm" id="rm-photo">✕</button></div>
+            </div>
+          </div>
+
+          <div id="eotm-block" style="display:none;">
+            <div class="eotm-note gate" id="eotm-gate" style="display:none;">🔒 Voting Employee of the Month wajib login dulu. <a href="/login?return=/form">Login / Daftar</a></div>
+            <div class="eotm-note closed" id="eotm-closed" style="display:none;"></div>
+            <div id="eotm-fields" style="display:none; flex-direction:column; gap:14px;">
+              <div class="eotm-note voted" id="eotm-voted" style="display:none;"></div>
+              <div>
+                <div class="lbl">Nama karyawan yang kamu pilih <span class="req">*</span></div>
+                <div class="emp-pick" id="emp-pick">
+                  <input class="vote-input" id="eotm-search" placeholder="🔍 Ketik buat cari nama karyawan…" autocomplete="off">
+                  <div class="emp-dd" id="emp-dd" style="display:none;"></div>
+                </div>
+              </div>
+              <div>
+                <div class="lbl">Core value yang paling dia tunjukkan <span class="req">*</span></div>
+                <div class="cv-row" id="cv-row"></div>
+              </div>
+              <div>
+                <div class="lbl">Alasan <span class="opt">(opsional)</span></div>
+                <textarea class="ta" id="eotm-reason" placeholder="Kenapa dia pantas jadi Employee of the Month? (opsional)" maxlength="200" style="min-height:90px;"></textarea>
+              </div>
+            </div>
+            <div class="eotm-live" id="eotm-live" style="margin-top:16px;"></div>
+          </div>
+
+          <button class="btn-primary" id="submit-btn" type="submit" style="height:52px;border-radius:14px;">🚀 Kirim Ide Sekarang</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/app.js?v=13"></script>
+  <script>
+  (function () {
+    const { toast } = window.IW;
+    const MAX = 5 * 1024 * 1024;
+    let photoData = '';
+    let me = null;
+
+    const ta = document.getElementById('f-text');
+    const counter = document.getElementById('counter');
+    const drop = document.getElementById('drop');
+    const fileInput = document.getElementById('file');
+    const preview = document.getElementById('preview');
+    const previewImg = document.getElementById('preview-img');
+    const submitBtn = document.getElementById('submit-btn');
+    const nameField = document.getElementById('f-name');
+
+    ta.addEventListener('input', () => {
+      const n = ta.value.length;
+      counter.textContent = n + '/500';
+      counter.classList.toggle('warn', n >= 400 && n < 480);
+      counter.classList.toggle('over', n >= 480);
+    });
+
+    function loadFile(file) {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) { toast('File harus berupa gambar', true); return; }
+      if (file.size > 25 * 1024 * 1024) { toast('Foto terlalu besar (max 25MB)', true); return; }
+      toast('Memproses foto…');
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const MAXDIM = 1600;
+          let w = img.width, h = img.height;
+          if (w > MAXDIM || h > MAXDIM) {
+            if (w >= h) { h = Math.round(h * MAXDIM / w); w = MAXDIM; }
+            else { w = Math.round(w * MAXDIM / h); h = MAXDIM; }
+          }
+          const cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          cv.getContext('2d').drawImage(img, 0, 0, w, h);
+          try { photoData = cv.toDataURL('image/jpeg', 0.82); }
+          catch (err) { photoData = reader.result; }
+          previewImg.src = photoData;
+          preview.style.display = 'block';
+          drop.style.display = 'none';
+        };
+        img.onerror = () => toast('Format foto tidak didukung, coba JPG/PNG', true);
+        img.src = reader.result;
+      };
+      reader.onerror = () => toast('Gagal membaca foto', true);
+      reader.readAsDataURL(file);
+    }
+
+    drop.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+    drop.addEventListener('drop', e => { if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+    document.getElementById('rm-photo').addEventListener('click', () => {
+      photoData = ''; fileInput.value = '';
+      preview.style.display = 'none'; drop.style.display = 'flex';
+    });
+
+    function showSuccess() {
+      const ov = document.createElement('div');
+      ov.className = 'success';
+      ov.innerHTML = `
+        <div class="em">🎉</div>
+        <h2>Ide terkirim!</h2>
+        <p>Idemu sudah muncul di feed tim kita!</p>
+        <div class="row">
+          <a href="/" style="background:var(--grad-accent);color:#fff;box-shadow:0 6px 16px rgba(255,107,43,0.35);">Lihat Feed</a>
+          <button type="button" id="again" style="border:2px solid var(--accent);background:none;color:var(--accent);">Kirim Lagi</button>
+        </div>`;
+      document.body.appendChild(ov);
+      ov.querySelector('#again').addEventListener('click', () => {
+        ov.remove();
+        ta.value = ''; counter.textContent = '0/500'; counter.className = 'counter';
+        photoData = ''; fileInput.value = '';
+        preview.style.display = 'none'; drop.style.display = 'flex';
+        submitBtn.disabled = false; submitBtn.textContent = '🚀 Kirim Ide Sekarang';
+      });
+    }
+
+    /* ===== kategori toggle + Employee of the Month voting ===== */
+    const esc = window.IW.esc;
+    const ideaBlock = document.getElementById('idea-block');
+    const eotmBlock = document.getElementById('eotm-block');
+    const eotmGate = document.getElementById('eotm-gate');
+    const eotmClosed = document.getElementById('eotm-closed');
+    const eotmFields = document.getElementById('eotm-fields');
+    const eotmVoted = document.getElementById('eotm-voted');
+    const empSearch = document.getElementById('eotm-search');
+    const empDD = document.getElementById('emp-dd');
+    const empPick = document.getElementById('emp-pick');
+    const eotmReason = document.getElementById('eotm-reason');
+    const cvRow = document.getElementById('cv-row');
+    const eotmLive = document.getElementById('eotm-live');
+    const titleEl = document.querySelector('.form-top .title');
+    const IDEA_BTN = '🚀 Kirim Ide Sekarang';
+    const VOTE_BTN = '⭐ Kirim Vote';
+
+    let category = 'ide_perbaikan';
+    let eotmState = null;
+    let eotmValue = '';
+    let selectedEmp = '';
+    let EMP = [];
+
+    /* ===== picker nama karyawan (search dari daftar) ===== */
+    fetch('/api/employees').then(r => r.json()).then(d => { EMP = d.names || []; }).catch(() => {});
+    function hiName(name, ql) {
+      if (!ql) return esc(name);
+      const i = name.toLowerCase().indexOf(ql);
+      if (i < 0) return esc(name);
+      return esc(name.slice(0, i)) + '<b>' + esc(name.slice(i, i + ql.length)) + '</b>' + esc(name.slice(i + ql.length));
+    }
+    function renderEmpDD() {
+      const ql = empSearch.value.trim().toLowerCase();
+      let list = ql ? EMP.filter(n => n.toLowerCase().includes(ql)) : EMP;
+      list = list.slice(0, 40);
+      if (!EMP.length) { empDD.innerHTML = '<div class="emp-empty">Daftar karyawan belum termuat…</div>'; }
+      else if (!list.length) { empDD.innerHTML = '<div class="emp-empty">Nama nggak ketemu. Cek ejaannya ya.</div>'; }
+      else { empDD.innerHTML = list.map(n => `<div class="emp-opt" data-name="${esc(n)}">${hiName(n, ql)}</div>`).join(''); }
+      empDD.style.display = 'block';
+    }
+    empSearch.addEventListener('input', () => { selectedEmp = ''; empPick.classList.remove('ok'); renderEmpDD(); });
+    empSearch.addEventListener('focus', renderEmpDD);
+    empDD.addEventListener('click', e => {
+      const o = e.target.closest('[data-name]'); if (!o) return;
+      selectedEmp = o.dataset.name; empSearch.value = selectedEmp; empPick.classList.add('ok'); empDD.style.display = 'none';
+    });
+    document.addEventListener('click', e => { if (!e.target.closest('#emp-pick')) empDD.style.display = 'none'; });
+
+    document.getElementById('cat-row').addEventListener('click', ev => {
+      const opt = ev.target.closest('.cat-opt'); if (!opt) return;
+      category = opt.dataset.cat;
+      document.querySelectorAll('#cat-row .cat-opt').forEach(o => o.classList.toggle('on', o === opt));
+      applyCategoryUI();
+    });
+
+    function applyCategoryUI() {
+      const isEotm = category === 'eotm';
+      ideaBlock.style.display = isEotm ? 'none' : '';
+      eotmBlock.style.display = isEotm ? '' : 'none';
+      titleEl.textContent = isEotm ? 'Voting Employee of the Month' : 'Kirim Ide Baru';
+      if (!isEotm) { submitBtn.disabled = false; submitBtn.textContent = IDEA_BTN; return; }
+      submitBtn.textContent = VOTE_BTN;
+      if (!eotmState) loadEotmState(); else renderEotm();
+    }
+
+    function buildCvChips() {
+      const cvs = (eotmState && eotmState.coreValues) || [];
+      cvRow.innerHTML = cvs.map(c => `<button type="button" class="cv${eotmValue === c.key ? ' on' : ''}" data-cv="${c.key}">${c.emoji} ${esc(c.label)}</button>`).join('');
+    }
+    cvRow.addEventListener('click', e => {
+      const b = e.target.closest('[data-cv]'); if (!b) return;
+      eotmValue = b.dataset.cv;
+      [...cvRow.querySelectorAll('.cv')].forEach(x => x.classList.toggle('on', x === b));
+    });
+
+    function loadEotmState() {
+      fetch('/api/eotm').then(r => r.json()).then(s => { eotmState = s; if (category === 'eotm') renderEotm(); }).catch(() => {});
+    }
+
+    function renderEotm() {
+      if (!eotmState) return;
+      const s = eotmState;
+      const open = s.status === 'open';
+      const loggedIn = !!me;
+      eotmGate.style.display = (open && !loggedIn) ? 'block' : 'none';
+      eotmClosed.style.display = !open ? 'block' : 'none';
+      if (!open) {
+        eotmClosed.textContent = s.winner
+          ? '🎉 Voting sudah ditutup & pemenang diumumkan — cek di Leaderboard!'
+          : 'Voting belum dibuka. Tunggu admin membuka sesi voting bulan ini ya. ✨';
+      }
+      const canVote = open && loggedIn;
+      eotmFields.style.display = canVote ? 'flex' : 'none';
+      if (canVote) {
+        buildCvChips();
+        if (s.myVote) {
+          eotmVoted.style.display = 'block';
+          eotmVoted.innerHTML = '✅ Kamu sudah vote: <b>' + esc(s.myVote.name) + '</b>. Bisa diganti selama voting masih buka.';
+          if (!selectedEmp) { selectedEmp = s.myVote.name; empSearch.value = s.myVote.name; empPick.classList.add('ok'); }
+          if (!eotmValue) { eotmValue = s.myVote.value; buildCvChips(); }
+          if (!eotmReason.value && s.myVote.reason) eotmReason.value = s.myVote.reason;
+        } else { eotmVoted.style.display = 'none'; }
+      }
+      renderEotmLive();
+      submitBtn.disabled = !canVote;
+      submitBtn.textContent = canVote ? VOTE_BTN : (open ? '🔒 Login dulu' : '⏳ Voting Ditutup');
+    }
+
+    function renderEotmLive() {
+      const s = eotmState; if (!s) { eotmLive.innerHTML = ''; return; }
+      const rows = (s.tally || []).slice(0, 8);
+      if (!rows.length) {
+        eotmLive.innerHTML = '<div class="h"><span>📊 Perolehan sementara</span><span>0 suara</span></div><div class="card" style="padding:14px;color:var(--faint);font-size:13px;font-weight:600;">Belum ada suara masuk.</div>';
+        return;
+      }
+      eotmLive.innerHTML = '<div class="h"><span>📊 Perolehan sementara — ' + esc(s.title || '') + '</span><span>' + s.totalVotes + ' suara</span></div>'
+        + '<div class="card">' + rows.map(r => '<div class="elv"><div class="r' + (r.rank <= 3 ? ' top' : '') + '">' + r.rank + '</div><div class="n">' + esc(r.name) + '</div><div class="v">' + r.votes + '</div></div>').join('') + '</div>';
+    }
+
+    function showVoteSuccess(name) {
+      const ov = document.createElement('div');
+      ov.className = 'success';
+      ov.innerHTML = '<div class="em">⭐</div><h2>Vote terkirim!</h2><p>Kamu memilih <b>' + esc(name) + '</b> sebagai Employee of the Month. Bisa diganti selama voting masih buka.</p>'
+        + '<div class="row"><a href="/leaderboard" style="background:var(--grad-accent);color:#fff;box-shadow:0 6px 16px rgba(255,107,43,0.35);">Lihat Hasil Live</a>'
+        + '<button type="button" id="vback" style="border:2px solid var(--accent);background:none;color:var(--accent);">Tutup</button></div>';
+      document.body.appendChild(ov);
+      ov.querySelector('#vback').addEventListener('click', () => { ov.remove(); submitBtn.disabled = false; submitBtn.textContent = VOTE_BTN; loadEotmState(); });
+    }
+
+    document.getElementById('idea-form').addEventListener('submit', e => {
+      e.preventDefault();
+      if (category === 'eotm') {
+        if (!me) { toast('Login dulu buat voting', true); return; }
+        const name = selectedEmp;
+        if (!name) { toast('Pilih nama karyawan dari daftar dulu', true); return; }
+        if (!eotmValue) { toast('Pilih satu core value', true); return; }
+        submitBtn.disabled = true; submitBtn.textContent = 'Mengirim…';
+        fetch('/api/eotm/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, value: eotmValue, reason: eotmReason.value.trim() }) })
+          .then(r => r.json()).then(res => {
+            if (res.error) { toast(res.error, true); submitBtn.disabled = false; submitBtn.textContent = VOTE_BTN; return; }
+            showVoteSuccess(name);
+          }).catch(() => { toast('Gagal kirim vote', true); submitBtn.disabled = false; submitBtn.textContent = VOTE_BTN; });
+        return;
+      }
+      const text = ta.value.trim();
+      if (!text) { toast('Tulis idemu dulu', true); return; }
+      const body = { text, category };
+      if (photoData) body.photo = photoData;
+      if (!me && nameField.value.trim()) body.name = nameField.value.trim();
+      submitBtn.disabled = true; submitBtn.textContent = 'Mengirim…';
+      fetch('/api/idea', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(r => r.json())
+        .then(res => {
+          if (res.error) { toast(res.error, true); submitBtn.disabled = false; submitBtn.textContent = IDEA_BTN; return; }
+          showSuccess();
+        })
+        .catch(() => { toast('Gagal mengirim ide', true); submitBtn.disabled = false; submitBtn.textContent = IDEA_BTN; });
+    });
+
+    // SSE: refresh perolehan live saat ada vote baru (kalau lagi di tab EOTM)
+    try {
+      const _es = new EventSource('/api/stream');
+      let _eotmDeb = null;
+      _es.addEventListener('eotm', () => { if (category !== 'eotm') return; clearTimeout(_eotmDeb); _eotmDeb = setTimeout(loadEotmState, 1500); });
+    } catch (e) { /* ignore */ }
+
+    const { avatarHTML, initials } = window.IW;
+    const userPill = document.getElementById('user-pill');
+    const whoEl = document.getElementById('who');
+    fetch('/api/member/me').then(r => r.json()).then(d => {
+      me = d.member;
+      if (me) {
+        const av = userPill.querySelector('.avatar');
+        if (av) av.outerHTML = avatarHTML(me, 32);
+        whoEl.innerHTML = 'Kirim sebagai <b>' + (me.name || me.username) + '</b>';
+      } else {
+        const av = userPill.querySelector('.avatar');
+        if (av) av.textContent = '👤';
+        whoEl.innerHTML = 'Kirim sebagai <b>Tamu</b>';
+        nameField.style.display = '';
+        document.getElementById('guest-note').style.display = 'block';
+      }
+      if (category === 'eotm') renderEotm();
+    }).catch(() => { nameField.style.display = ''; });
+  })();
+  </script>
+</body>
+</html>

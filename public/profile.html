@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Profil — Idea Wall Antarestar</title>
+<meta name="theme-color" content="#FF6B2B">
+<link rel="icon" href="/assets/antarestar-logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="/assets/app.css?v=17">
+<style>
+  .prof-body { padding:0 14px 90px; }
+  .cta-wrap { padding:0 0 18px; }
+  .section-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .section-head .t { font-weight:800; font-size:15px; color:var(--text); }
+  .section-head .badge { background:var(--accent); color:#fff; font-weight:800; font-size:11px; padding:2px 8px; border-radius:999px; }
+  .mine-card { background:var(--card); border-radius:var(--radius); border:1px solid var(--border); padding:13px 14px; margin-bottom:10px; box-shadow:var(--shadow-card); }
+  .mine-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .mine-time { font-size:12px; color:var(--faint); font-weight:600; flex-shrink:0; }
+  .mine-text { font-size:13.5px; line-height:1.45; font-weight:500; color:var(--text);
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .mine-foot { display:flex; align-items:center; gap:14px; margin-top:8px; font-size:12.5px; font-weight:700; color:var(--muted); }
+  .mine-foot .likes { color:var(--muted); }
+  .mine-pic { margin-top:8px; font-size:12.5px; font-weight:700; color:#15663a; background:rgba(31,168,91,0.10); border-radius:8px; padding:6px 10px; }
+  .mine-prog { margin-top:8px; display:flex; flex-direction:column; gap:5px; }
+  .mine-prog .mp { font-size:12.5px; font-weight:600; color:var(--text); border-left:3px solid var(--accent); padding:2px 0 2px 9px; }
+  .mine-prog .mp span { font-size:10.5px; font-weight:800; color:var(--faint); margin-right:5px; }
+  .mine-impact { margin-top:8px; font-size:12.5px; font-weight:700; color:#8A5410; background:rgba(199,122,26,0.10); border-radius:8px; padding:6px 10px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div id="content"><div class="empty">Memuat profil…</div></div>
+  </div>
+
+  <script src="/assets/app.js?v=17"></script>
+  <script>
+  (function () {
+    const { esc, formatTime, pad4, avatarHTML, avColor, initials, toast, STATUS, badgesHTML, eotmWinnerSet } = window.IW;
+    const content = document.getElementById('content');
+
+    function joined(ts) {
+      if (!ts) return '';
+      const MON = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+      const d = new Date(ts);
+      return 'Bergabung ' + MON[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    function pill(status) {
+      const s = STATUS[status] || STATUS.pending;
+      return `<span class="pill ${s.cls}">${s.icon} ${s.label}</span>`;
+    }
+
+    function render(data, winnerSet) {
+      const m = data.member, st = data.stats || { ideas: 0, likes: 0, comments: 0 };
+      const avStyle = m.avatar ? `background-image:url('${esc(m.avatar)}')` : '';
+      const ideas = (data.ideas || []).slice().sort((a, b) => b.ts - a.ts);
+      const hasDone = ideas.some(i => i.status === 'done');
+      const wonEotm = winnerSet && winnerSet.has(String(m.name || '').trim().toLowerCase());
+      const bHTML = badgesHTML({ ideas: st.ideas, likes: st.likes, comments: st.comments, hasDone, wonEotm });
+      content.innerHTML = `
+        <div class="prof-grad">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <a href="/" class="back">←</a>
+            <span style="font-weight:800;font-size:16px;color:#fff;">👤 Akun Saya</span>
+          </div>
+          <div class="center">
+            <div class="pav" style="${avStyle}">${m.avatar ? '' : esc(initials(m.name))}</div>
+            <div>
+              <div class="pname">${esc(m.name)}</div>
+              <div class="phandle">@${esc(m.username)}</div>
+              <div class="pjoin">${joined(m.createdAt)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-card">
+          <div class="cell"><div class="ic">💡</div><div class="n">${st.ideas}</div><div class="l">Ide Dikirim</div></div>
+          <div class="cell"><div class="ic">❤️</div><div class="n">${st.likes}</div><div class="l">Total Suka</div></div>
+          <div class="cell"><div class="ic">💬</div><div class="n">${st.comments}</div><div class="l">Komentar</div></div>
+        </div>
+
+        <div class="prof-body">
+          ${bHTML ? `<div class="badge-row" style="padding:2px 0 16px;">${bHTML}</div>` : ''}
+          <div class="cta-wrap">
+            <a class="btn-primary" href="/form" style="text-decoration:none;border-radius:999px;">➕ Kirim Ide Baru</a>
+          </div>
+
+          <div class="section-head">
+            <span class="t">Ide yang sudah dikirim</span>
+            <span class="badge">${ideas.length}</span>
+          </div>
+
+          ${ideas.length ? ideas.map(d => `
+            <article class="mine-card">
+              <div class="mine-top">
+                ${pill(d.status)}
+                <span class="mine-time">${formatTime(d.ts)}</span>
+              </div>
+              <p class="mine-text">${esc(d.text)}</p>
+              ${(d.pic || d.due) ? `<div class="mine-pic">👤 ${esc(d.pic || '—')}${d.due ? ` · ⏰ ${esc(d.due)}` : ''}</div>` : ''}
+              ${(d.progress && d.progress.length) ? `<div class="mine-prog">${d.progress.map(p => `<div class="mp"><span>${formatTime(p.ts)}</span> ${esc(p.text)}</div>`).join('')}</div>` : ''}
+              ${d.impact ? `<div class="mine-impact">🏁 ${esc(d.impact)}</div>` : ''}
+              <div class="mine-foot">
+                <span class="likes">❤️ ${d.likes || 0}</span>
+                <span>💬 ${(d.comments || []).length}</span>
+                <span style="margin-left:auto;font-size:11px;color:var(--faint);">#${pad4(d.id)}</span>
+              </div>
+            </article>`).join('') : '<div style="color:var(--muted);font-weight:600;font-size:14px;padding:10px 0 18px;">Belum ada ide. Yuk bagikan ide pertamamu!</div>'}
+
+          <button class="btn-ghost" id="logout-btn" style="margin-top:14px;">Keluar</button>
+        </div>`;
+
+      document.getElementById('logout-btn').addEventListener('click', () => {
+        fetch('/api/member/logout', { method: 'POST' }).then(() => { location.href = '/'; });
+      });
+    }
+
+    // 1 gelombang paralel: profil-sendiri + eotm (tanpa hop /me dulu) — lebih cepat di HP
+    Promise.all([
+      fetch('/api/me/profile').then(r => r.json()),
+      fetch('/api/eotm').then(r => r.json()).catch(() => ({ history: [] })),
+    ]).then(([p, e]) => {
+      if (p.error) { location.href = '/login'; return; }
+      render(p, eotmWinnerSet(e.history));
+    }).catch(() => { content.innerHTML = '<div class="empty">Gagal memuat profil.</div>'; });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Masuk — Idea Wall Antarestar</title>
+<meta name="theme-color" content="#FF6B2B">
+<link rel="icon" href="/assets/antarestar-logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="/assets/app.css?v=12">
+<style>
+  .auth-wrap { padding: 36px 22px 28px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  .auth-logo { display:flex; flex-direction:column; align-items:center; margin-bottom: 24px; }
+  .auth-logo .ring {
+    width:90px; height:90px; border-radius:50%; background:#fff; overflow:hidden; margin-bottom:12px;
+    display:grid; place-items:center;
+    box-shadow:0 10px 28px rgba(255,107,43,0.35), 0 0 0 5px rgba(255,107,43,0.12);
+  }
+  .auth-logo .ring img { width:100%; height:100%; object-fit:contain; padding:10px; }
+  .auth-logo .name { font-weight:900; font-size:24px; letter-spacing:-0.01em; line-height:1.1; text-align:center; }
+  .auth-logo .name span { color:var(--accent); }
+  .auth-logo .sub { font-weight:500; font-size:14px; color:var(--muted); margin-top:4px; }
+  .google-btn {
+    width:100%; height:48px; border-radius:13px; border:1.5px solid var(--border);
+    background:#fff; color:var(--text); font-weight:700; font-size:15px;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.06); margin-bottom:18px;
+  }
+  .divider { display:flex; align-items:center; gap:12px; margin-bottom:18px; width:100%; }
+  .divider .line { flex:1; height:1px; background:var(--border); }
+  .divider span { font-size:12px; font-weight:600; color:var(--faint); }
+  .tabs { display:flex; width:100%; border-bottom:2px solid var(--border); margin-bottom:20px; }
+  .tabs button { flex:1; padding-bottom:10px; border:none; background:none; font-weight:800; font-size:14.5px;
+    color:var(--muted); border-bottom:2.5px solid transparent; margin-bottom:-2px; transition:color .18s; }
+  .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .auth-form { width:100%; }
+  .err-msg { color:var(--red); font-size:13px; font-weight:700; margin-bottom:12px; min-height:18px; text-align:center; width:100%; }
+  .foot-brand { margin-top:auto; padding-top:24px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .foot-brand img { height:22px; object-fit:contain; opacity:0.55; }
+  .foot-brand span { font-size:12px; color:var(--faint); font-weight:600; }
+  .forgot { text-align:center; margin-top:8px; }
+  .forgot a { font-size:13px; color:var(--accent); font-weight:700; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="auth-wrap">
+      <div class="auth-logo">
+        <div class="ring"><img src="/assets/antarestar-logo.jpg" alt="Antarestar"></div>
+        <div class="name">Antarestar <span>Idea</span></div>
+        <div class="sub">Bagikan ide perbaikanmu</div>
+      </div>
+
+      <a class="google-btn" id="google-btn" href="/auth/google?return=/"></a>
+
+      <div class="divider"><div class="line"></div><span>atau</span><div class="line"></div></div>
+
+      <div class="tabs">
+        <button id="tab-login" class="on">Masuk</button>
+        <button id="tab-register">Daftar</button>
+      </div>
+
+      <div class="err-msg" id="err"></div>
+
+      <form id="form-auth" class="auth-form">
+        <input class="field" id="f-name" placeholder="Nama lengkap" style="display:none;" autocomplete="name">
+        <input class="field" id="f-username" placeholder="Username" autocomplete="username" required>
+        <input class="field" id="f-email" type="email" placeholder="Email" style="display:none;" autocomplete="email">
+        <input class="field" id="f-password" type="password" placeholder="Password" autocomplete="current-password" required>
+        <button class="btn-primary" id="submit-btn" type="submit">Masuk</button>
+        <div class="forgot"><a href="#">Lupa password?</a></div>
+      </form>
+
+      <div class="foot-brand">
+        <a href="/" style="font-weight:700; font-size:13.5px; color:var(--muted);">← Lihat Feed tanpa login</a>
+        <img src="/assets/antarestar-logo.jpg" alt="Antarestar">
+        <span>Hanya untuk tim Antarestar</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/app.js?v=12"></script>
+  <script>
+  (function () {
+    const { toast, GOOGLE_G } = window.IW;
+    document.getElementById('google-btn').innerHTML = GOOGLE_G + ' Login dengan Google';
+    let mode = 'login';
+    const tabLogin = document.getElementById('tab-login');
+    const tabReg = document.getElementById('tab-register');
+    const fName = document.getElementById('f-name');
+    const fEmail = document.getElementById('f-email');
+    const fPass = document.getElementById('f-password');
+    const fUser = document.getElementById('f-username');
+    const btn = document.getElementById('submit-btn');
+    const err = document.getElementById('err');
+
+    const params = new URLSearchParams(location.search);
+    if (params.get('err')) err.textContent = 'Login Google gagal, coba lagi.';
+    // tujuan balik setelah login (cuma path lokal, cegah open-redirect)
+    let ret = params.get('return') || '/';
+    if (!/^\/[^/]/.test(ret) && ret !== '/') ret = '/';
+    const gbtn = document.getElementById('google-btn');
+    if (gbtn) gbtn.href = '/auth/google?return=' + encodeURIComponent(ret);
+
+    function setMode(m) {
+      mode = m;
+      tabLogin.classList.toggle('on', m === 'login');
+      tabReg.classList.toggle('on', m === 'register');
+      fName.style.display = m === 'register' ? '' : 'none';
+      fEmail.style.display = m === 'register' ? '' : 'none';
+      fPass.autocomplete = m === 'register' ? 'new-password' : 'current-password';
+      btn.textContent = m === 'login' ? 'Masuk' : 'Daftar Sekarang';
+      err.textContent = '';
+    }
+    tabLogin.addEventListener('click', () => setMode('login'));
+    tabReg.addEventListener('click', () => setMode('register'));
+
+    document.getElementById('form-auth').addEventListener('submit', e => {
+      e.preventDefault();
+      err.textContent = '';
+      const username = fUser.value.trim();
+      const password = fPass.value;
+      const url = mode === 'login' ? '/api/member/login' : '/api/member/register';
+      const body = mode === 'login'
+        ? { username, password }
+        : { name: fName.value.trim(), username, email: fEmail.value.trim(), password };
+      btn.disabled = true; btn.textContent = 'Memproses…';
+      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(r => r.json())
+        .then(res => {
+          if (res.error) { err.textContent = res.error; btn.disabled = false; btn.textContent = mode === 'login' ? 'Masuk' : 'Daftar Sekarang'; return; }
+          toast('Berhasil! Mengalihkan…');
+          location.href = ret;
+        })
+        .catch(() => { err.textContent = 'Koneksi gagal, coba lagi.'; btn.disabled = false; btn.textContent = mode === 'login' ? 'Masuk' : 'Daftar Sekarang'; });
+    });
+
+    /* if already logged in, go home */
+    fetch('/api/member/me').then(r => r.json()).then(d => { if (d.member) location.href = ret; }).catch(() => {});
+  })();
+  </script>
+</body>
+</html>

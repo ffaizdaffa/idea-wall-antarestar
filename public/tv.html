@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idea Wall — Antarestar (TV)</title>
+<link rel="icon" href="/assets/antarestar-logo.jpg">
+<link rel="stylesheet" href="/assets/tv.css?v=17">
+<style>
+  html, body { height: 100%; }
+  body { margin: 0; background: #000; overflow: hidden; cursor: none; }
+  #stage { position: fixed; inset: 0; overflow: hidden; }
+  #board { position: absolute; top: 50%; left: 50%; transform-origin: center center; }
+
+  /* ── notif spotlight ide baru ── */
+  #notif {
+    position: fixed; top: 90px; left: 50%; transform: translateX(-50%) translateY(-160%);
+    z-index: 9999; min-width: 480px; max-width: 70vw;
+    background: linear-gradient(135deg, #FF6B2B, #FF7E3D);
+    color: #fff; border-radius: 22px; padding: 22px 34px;
+    box-shadow: 0 24px 60px rgba(255,107,43,0.55), 0 0 0 6px rgba(255,255,255,0.15);
+    display: flex; align-items: center; gap: 22px;
+    opacity: 0; transition: transform .6s cubic-bezier(.16,1,.3,1), opacity .5s;
+    font-family: 'Archivo', system-ui, sans-serif;
+  }
+  #notif.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  #notif .bell { font-size: 52px; line-height: 1; animation: nbell .8s ease infinite alternate; }
+  @keyframes nbell { from{transform:rotate(-12deg)} to{transform:rotate(12deg)} }
+  #notif .nbody { min-width: 0; }
+  #notif .nkick { font-size: 15px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .9; }
+  #notif .nname { font-size: 22px; font-weight: 900; margin-top: 2px; }
+  #notif .ntext { font-size: 19px; font-weight: 600; margin-top: 4px; max-width: 52vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* KPI chip standout (partisipasi) untuk investor */
+  .iw-chip.star { background: linear-gradient(135deg, rgba(255,107,43,0.16), rgba(255,154,77,0.08)) !important; border: 1px solid rgba(255,107,43,0.55) !important; box-shadow: 0 0 26px rgba(255,107,43,0.20); }
+  .iw-chip.star .big { color: #FF6B2B; }
+  .iw-chip .of { font-size: 0.5em; opacity: 0.6; font-weight: 700; }
+  .iw-chip.ok { background: linear-gradient(135deg, rgba(31,168,91,0.16), rgba(95,208,140,0.08)) !important; border: 1px solid rgba(31,168,91,0.5) !important; }
+  .iw-chip.ok .big { color: #1FA85B; }
+</style>
+</head>
+<body>
+  <div id="stage"><div id="board"></div></div>
+  <div id="notif"><div class="bell">🔔</div><div class="nbody"><div class="nkick">✨ Ide Perbaikan Baru</div><div class="nname" id="nName"></div><div class="ntext" id="nText"></div></div></div>
+
+  <script>
+  (function () {
+    'use strict';
+    const AV = [
+      'linear-gradient(135deg,#FF6B2B,#FF9A4D)','linear-gradient(135deg,#1A6BFF,#5C97FF)',
+      'oklch(0.62 0.16 150)','oklch(0.6 0.16 25)','oklch(0.6 0.16 300)',
+      'oklch(0.62 0.16 200)','oklch(0.62 0.16 95)','oklch(0.6 0.16 340)',
+    ];
+    const ST = {
+      pending:     { cls:'p-pend', emo:'⏳', lbl:'Pending',    card:'' },
+      in_progress: { cls:'p-prog', emo:'🔧', lbl:'Dikerjakan', card:'s-prog' },
+      done:        { cls:'p-done', emo:'✅', lbl:'Selesai',     card:'s-done' },
+    };
+    const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+    const MON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+    function initials(n){const p=String(n||'').trim().split(/\s+/).filter(Boolean);if(!p.length)return'?';if(p.length===1)return p[0].slice(0,2).toUpperCase();return (p[0][0]+p[p.length-1][0]).toUpperCase();}
+    function pad(n){return String(n).padStart(2,'0');}
+    function pad4(n){return String(n).padStart(4,'0');}
+    function avFor(idx){return AV[idx%AV.length];}
+    function relTime(ts){const d=Math.max(0,Date.now()-ts),m=Math.floor(d/60000);if(m<1)return'Baru saja';if(m<60)return m+' menit lalu';const h=Math.floor(m/60);if(h<24)return h+' jam lalu';return Math.floor(h/24)+' hari lalu';}
+
+    const TV_CAP = 600; // render semua ide (scroll dari terbaru sampai paling lama). Cap tinggi = batas aman kalau ribuan.
+    const board = document.getElementById('board');
+    const theme = new URLSearchParams(location.search).get('theme') === 'dark' ? 'dark' : 'light';
+    let ideas = [];
+    let tracks = [];
+    let trophyId = null;
+    let empCount = 0; // total karyawan (buat % partisipasi)
+    fetch('/api/employees').then(r=>r.json()).then(d=>{ empCount = (d.names||[]).length; }).catch(()=>{});
+
+    function computeTrophy() {
+      let best = null;
+      for (const i of ideas) if ((i.likes||0) > 0 && (!best || i.likes > best.likes)) best = i;
+      trophyId = best ? best.id : null;
+    }
+
+    function cardHTML(d, idx) {
+      const s = ST[d.status] || ST.pending;
+      const isTrophy = d.id === trophyId;
+      const isNew = (Date.now() - d.ts) < 90000;
+      const photo = d.photo ? `<div class="iw-photo"><img src="${esc(d.photo)}" alt="" loading="lazy" decoding="async"></div>` : '';
+      const corner = isTrophy ? `<div class="iw-trophy">🏆</div>` : (isNew ? `<div class="iw-new-tag">Baru</div>` : '');
+      const cls = ['iw-card', s.card, isTrophy?'trophy':'', isNew?'newest':''].filter(Boolean).join(' ');
+      return `
+      <article class="${cls}">
+        ${corner}
+        <div class="iw-card-pad">
+          <div class="iw-row1"><span class="iw-badge">💡 Ide Perbaikan</span><span class="iw-num">#${pad4(d.id)}</span></div>
+          ${photo}
+          <p class="iw-text">${esc(d.text)}</p>
+          <div class="iw-foot">
+            <div class="iw-avatar" style="background:${avFor(idx)}">${esc(initials(d.name))}</div>
+            <div class="iw-author"><span class="nm">${esc(d.name)}</span><span class="tm">${relTime(d.ts)}</span></div>
+            <div class="iw-foot-r">
+              <span class="iw-pill ${s.cls}">${s.emo} ${s.lbl}</span>
+              <span class="iw-stat">💬 ${(d.comments||[]).length}</span>
+              <span class="iw-stat like">❤️ ${d.likes||0}</span>
+            </div>
+          </div>
+        </div>
+      </article>`;
+    }
+
+    function colHTML(items, startIdx) {
+      return `<div class="iw-set">${items.map((d,k)=>cardHTML(d,startIdx+k)).join('')}</div>`;
+    }
+
+    function tickerHTML(items) {
+      if (!items || !items.length) return '';
+      const html = items.map(d => {
+        const short = d.text.length > 72 ? d.text.slice(0,72).trim()+'…' : d.text;
+        return `<span class="iw-tick-item"><span class="emo">💡</span><b>${esc(d.name)}:</b> ${esc(short)}<span class="sep">◆</span></span>`;
+      }).join('');
+      return html + html;
+    }
+
+    function render() {
+      computeTrophy();
+      board.className = 'iw-board ' + theme;
+      const all = ideas.slice().sort((a,b)=>b.ts-a.ts);
+      const total = all.length;
+      const totalLikes = all.reduce((s,d)=>s+(d.likes||0),0);
+      // KPI investor: kontributor unik + total komentar (engagement)
+      const contribSet = new Set();
+      all.forEach(d => { const k = d.memberId || (d.name||'').toLowerCase().trim(); if (k && k !== 'anonim') contribSet.add(k); });
+      const contributors = contribSet.size;
+      const totalComments = all.reduce((s,d) => s + ((d.comments||[]).length), 0);
+      const doneCount = all.filter(d => d.status === 'done').length; // ide diterapkan (chip muncul kalau >0)
+      const list = all.slice(0, TV_CAP); // TV cuma render N ide terbaru biar ringan di AbleSign
+      // distribute across 3 columns round-robin
+      const cols = [[],[],[]];
+      list.forEach((d,i)=>cols[i%3].push(d));
+      const starts = [0, cols[0].length, cols[0].length+cols[1].length];
+      const speeds = [22,17,27];
+
+      board.innerHTML = `
+        <header class="iw-topbar">
+          <div class="iw-brand">
+            <div class="iw-mark"><img src="/assets/antarestar-logo.jpg" alt="Antarestar"></div>
+            <div class="iw-brand-txt">
+              <div class="iw-brand-name">ANTARE<b>STAR</b></div>
+              <div class="iw-brand-sub">GLOBAL KREATIFINDO</div>
+            </div>
+          </div>
+          <div class="iw-live"><span class="dot"></span> IDEA WALL · LIVE</div>
+          <div class="iw-spacer"></div>
+          <div class="iw-chip star"><span class="ic">💡</span><span class="big">${total}</span><span class="lbl">Total Ide</span></div>
+          <div class="iw-chip"><span class="ic">👥</span><span class="big">${contributors}</span><span class="lbl">Kontributor</span></div>
+          <div class="iw-chip"><span class="ic">❤️</span><span class="big">${totalLikes}</span><span class="lbl">Total Suka</span></div>
+          <div class="iw-chip"><span class="ic">💬</span><span class="big">${totalComments}</span><span class="lbl">Komentar</span></div>
+          ${doneCount > 0 ? `<div class="iw-chip ok"><span class="ic">✅</span><span class="big">${doneCount}</span><span class="lbl">Diterapkan</span></div>` : ''}
+          <div class="iw-clock"><div class="iw-time" data-clock>--:--<span class="sec">:--</span></div><div class="iw-date" data-date>—</div></div>
+        </header>
+        <div class="iw-grid">
+          ${cols.map((items,c)=>`<div class="iw-col"><div class="iw-track">${colHTML(items,starts[c])}</div></div>`).join('')}
+        </div>
+        <footer class="iw-ticker">
+          <div class="iw-ticker-lbl"><span class="dot"></span> Ide Terbaru</div>
+          <div class="iw-ticker-track">${tickerHTML(list.slice(0, 28))}</div>
+        </footer>`;
+
+      startClock();
+      setupTracks();
+    }
+
+    let clockTimer = null;
+    function startClock() {
+      const clk = board.querySelector('[data-clock]');
+      const dt = board.querySelector('[data-date]');
+      function tick() {
+        const now = new Date();
+        clk.innerHTML = `${pad(now.getHours())}:${pad(now.getMinutes())}<span class="sec">:${pad(now.getSeconds())}</span>`;
+        dt.textContent = `${DAYS[now.getDay()]}, ${now.getDate()} ${MON[now.getMonth()]} ${now.getFullYear()}`;
+      }
+      tick();
+      if (clockTimer) clearInterval(clockTimer);
+      clockTimer = setInterval(tick, 1000);
+    }
+
+    const SCROLL_SPEED = 32; // px/detik (ruang desain 1920) — pelan biar kebaca
+    let gridY = 0, maxScroll = 0, scrollState = 'scroll', holdUntil = 0;
+    function setupTracks() {
+      tracks = [...board.querySelectorAll('.iw-track')];
+      maxScroll = 0;
+      for (const el of tracks) {
+        const set = el.querySelector('.iw-set');
+        const visible = (el.parentElement && el.parentElement.clientHeight) || 900;
+        const sc = (set ? set.offsetHeight : 0) - visible;
+        if (sc > maxScroll) maxScroll = sc;
+        el.style.transform = 'translateY(0px)';
+      }
+      gridY = 0; scrollState = 'scroll'; holdUntil = 0;
+      // ticker bawah: kecepatan konstan (durasi ikut panjang konten)
+      const tk = board.querySelector('.iw-ticker-track');
+      if (tk) { const one = tk.scrollWidth / 2; tk.style.animationDuration = Math.max(40, Math.round(one / 110)) + 's'; }
+    }
+
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min((now - last) / 1000, 0.05); last = now;
+      if (scrollState === 'hold') {
+        if (now >= holdUntil) render(); // sampai paling bawah → jeda → rebuild (ambil ide baru) → mulai dari atas lagi
+      } else if (maxScroll > 4) {
+        gridY -= SCROLL_SPEED * dt;
+        if (-gridY >= maxScroll) { gridY = -maxScroll; scrollState = 'hold'; holdUntil = now + 3500; }
+        for (const el of tracks) el.style.transform = `translateY(${gridY}px)`;
+      } else {
+        // konten muat 1 layar → nggak perlu scroll, refresh tiap 30 dtk biar ambil ide baru
+        if (!holdUntil) holdUntil = now + 30000;
+        else if (now >= holdUntil) render();
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    function fit() {
+      const s = Math.min(innerWidth/1920, innerHeight/1080);
+      board.style.transform = `translate(-50%, -50%) scale(${s})`;
+    }
+    addEventListener('resize', fit);
+
+    /* notif spotlight tiap ide baru */
+    let notifTimer = null;
+    const notifEl = document.getElementById('notif');
+    function showNotif(d) {
+      document.getElementById('nName').textContent = d.name || 'Anonim';
+      document.getElementById('nText').textContent = d.text || '';
+      notifEl.classList.add('show');
+      clearTimeout(notifTimer);
+      notifTimer = setTimeout(() => notifEl.classList.remove('show'), 7000);
+    }
+    // sisipkan kartu ide baru ke wall SEKETIKA (tanpa full re-render) — realtime & ringan
+    function prependIdea(d) {
+      const track = board.querySelector('.iw-track'); // kolom pertama
+      if (!track) return;
+      const html = cardHTML(d, 0);
+      track.querySelectorAll('.iw-set').forEach(set => set.insertAdjacentHTML('afterbegin', html));
+    }
+
+    /* live updates: SSE cuma update DATA (nggak re-render tiap event biar scroll mulus & nggak nge-lag).
+       Board di-refresh berkala tiap 30 dtk. Ide baru tetap munculin spotlight notif seketika. */
+    function connectSSE() {
+      let es;
+      function open() {
+        es = new EventSource('/api/stream');
+        es.addEventListener('idea', e => { const d=JSON.parse(e.data); if(!ideas.find(i=>i.id===d.id)){ ideas.unshift(d); showNotif(d); } });
+        es.addEventListener('delete', e => { const d=JSON.parse(e.data); const i=ideas.findIndex(x=>x.id===d.id); if(i>-1) ideas.splice(i,1); });
+        es.addEventListener('status', e => { const d=JSON.parse(e.data); const idea=ideas.find(x=>x.id===d.id); if(idea) idea.status=d.status; });
+        es.addEventListener('comment', e => { const d=JSON.parse(e.data); const idea=ideas.find(x=>x.id===d.id); if(idea){ if(!idea.comments)idea.comments=[]; idea.comments.push(d.comment); } });
+        es.addEventListener('like', e => { const d=JSON.parse(e.data); const idea=ideas.find(x=>x.id===d.id); if(idea) idea.likes=d.likes; });
+        es.onerror = () => { try{es.close();}catch(x){} setTimeout(open,4000); };
+      }
+      open();
+    }
+
+    fetch('/api/ideas').then(r=>r.json()).then(d=>{ ideas = d.ideas||[]; render(); fit(); connectSSE(); })
+      .catch(()=>{ board.innerHTML = '<div style="color:#fff;padding:40px;font-family:sans-serif;">Gagal memuat Idea Wall.</div>'; fit(); });
+  })();
+  </script>
+</body>
+</html>

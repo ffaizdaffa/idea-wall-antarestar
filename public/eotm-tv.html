@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee of the Month — Antarestar TV</title>
+<link rel="icon" href="/assets/antarestar-logo.jpg">
+<style>
+  :root { --gold:#F4B82E; --gold2:#FFD66B; --orange:#FF6B2B; --blue:#5C97FF; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; background:#090c1a; overflow:hidden; cursor:none;
+    font-family:'Archivo','Segoe UI',system-ui,-apple-system,sans-serif; color:#fff; }
+  #stage { position:fixed; inset:0; overflow:hidden; }
+  #board { position:absolute; top:50%; left:50%; transform-origin:center center; width:1920px; height:1080px;
+    background:radial-gradient(1300px 760px at 50% -4%, #322a63 0%, #1a1c3e 42%, #0b0e20 100%); overflow:hidden; }
+  #board::before { content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(820px 460px at 50% 6%, rgba(244,184,46,0.18), transparent 62%); }
+  #board::after { content:""; position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 0 240px rgba(0,0,0,0.55); }
+  #confetti { position:absolute; inset:0; pointer-events:none; z-index:50; }
+
+  /* stars ambient */
+  .stars { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .star { position:absolute; width:4px; height:4px; border-radius:50%; background:rgba(255,255,255,.5); animation:tw 3s ease-in-out infinite; }
+  @keyframes tw { 0%,100%{opacity:.2;transform:scale(.7);} 50%{opacity:.9;transform:scale(1.2);} }
+
+  /* header */
+  .hd { position:relative; z-index:5; display:flex; align-items:center; gap:26px; padding:46px 64px 0; }
+  .hd .mark { width:74px; height:74px; border-radius:18px; background:#fff; padding:8px; flex-shrink:0; box-shadow:0 8px 30px rgba(0,0,0,.4); }
+  .hd .mark img { width:100%; height:100%; object-fit:contain; }
+  .hd .ttl { flex:1; }
+  .hd .kick { font-size:20px; font-weight:800; letter-spacing:.36em; color:var(--gold2); text-transform:uppercase; }
+  .hd .big { font-size:58px; font-weight:900; line-height:1; letter-spacing:-.01em; margin-top:6px;
+    background:linear-gradient(92deg,#fff 30%,var(--gold2)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .hd .sub { font-size:24px; font-weight:700; color:rgba(255,255,255,.65); margin-top:8px; }
+  .hd .live { display:inline-flex; align-items:center; gap:11px; font-size:22px; font-weight:900; letter-spacing:.12em;
+    padding:13px 24px; border-radius:999px; background:rgba(31,168,91,.18); color:#7BE6A8; }
+  .hd .live.off { background:rgba(255,255,255,.08); color:rgba(255,255,255,.6); }
+  .hd .live .dot { width:14px; height:14px; border-radius:50%; background:#22d36a; animation:blink 1.3s infinite; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.25;} }
+  .hd .clock { text-align:right; }
+  .hd .clock .t { font-size:46px; font-weight:900; font-variant-numeric:tabular-nums; }
+  .hd .clock .d { font-size:18px; font-weight:700; color:rgba(255,255,255,.55); }
+
+  /* main grid */
+  .main { position:relative; z-index:5; display:grid; grid-template-columns:1fr 600px; gap:34px; padding:34px 64px 0; height:850px; }
+
+  /* candidates */
+  .cands { display:flex; flex-direction:column; gap:18px; }
+  .cands-h { font-size:22px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.55); }
+  .cand { display:flex; align-items:center; gap:22px; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.08);
+    border-radius:22px; padding:20px 26px; transition:transform .4s cubic-bezier(.16,1,.3,1), background .4s; }
+  .cand.lead { background:linear-gradient(100deg, rgba(244,184,46,.20), rgba(244,184,46,.05)); border-color:rgba(244,184,46,.5);
+    box-shadow:0 0 0 1px rgba(244,184,46,.35), 0 14px 44px rgba(244,184,46,.18); }
+  .cand .rk { font-size:40px; width:58px; text-align:center; flex-shrink:0; font-weight:900; color:rgba(255,255,255,.5); }
+  .cand .av { width:70px; height:70px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; font-weight:900; font-size:26px; color:#fff; }
+  .cand .cbody { flex:1; min-width:0; }
+  .cand .cname { font-size:30px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:12px; }
+  .cand .cname .crown { animation:bob 1.4s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{transform:translateY(0) rotate(-6deg);} 50%{transform:translateY(-6px) rotate(6deg);} }
+  .cand .cv { font-size:17px; font-weight:700; color:rgba(255,255,255,.5); margin-top:2px; }
+  .cand .bar { height:14px; border-radius:8px; background:rgba(255,255,255,.09); overflow:hidden; margin-top:11px; }
+  .cand .bar i { display:block; height:100%; border-radius:8px; background:linear-gradient(90deg,var(--orange),var(--gold2)); width:0; transition:width 1s cubic-bezier(.16,1,.3,1); }
+  .cand.lead .bar i { background:linear-gradient(90deg,var(--gold),#FFE9A8); }
+  .cand .votes { flex-shrink:0; text-align:center; min-width:120px; }
+  .cand .votes .n { font-size:48px; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; }
+  .cand .votes .l { font-size:15px; font-weight:700; color:rgba(255,255,255,.5); letter-spacing:.08em; }
+
+  /* right column */
+  .side { display:flex; flex-direction:column; gap:28px; }
+  .panel { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09); border-radius:26px; padding:30px 32px; }
+  .tot { text-align:center; }
+  .tot .num { font-size:128px; font-weight:900; line-height:.9; font-variant-numeric:tabular-nums;
+    background:linear-gradient(180deg,#fff,var(--gold2)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .tot .lbl { font-size:22px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.55); margin-top:6px; }
+  .tot .part { font-size:20px; font-weight:700; color:var(--gold2); margin-top:14px; }
+  .ring { display:block; margin:6px auto 0; }
+  .cvh { font-size:18px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.5); margin-bottom:16px; }
+  .cvrow { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+  .cvrow:last-child { margin-bottom:0; }
+  .cvrow .e { font-size:26px; width:34px; text-align:center; }
+  .cvrow .nm { font-size:19px; font-weight:700; width:168px; }
+  .cvrow .bar { flex:1; height:12px; border-radius:7px; background:rgba(255,255,255,.09); overflow:hidden; }
+  .cvrow .bar i { display:block; height:100%; border-radius:7px; background:linear-gradient(90deg,var(--blue),#9DBDFF); width:0; transition:width 1s ease; }
+  .cvrow .n { font-size:22px; font-weight:900; width:46px; text-align:right; font-variant-numeric:tabular-nums; }
+
+  /* footer CTA */
+  .ft { position:absolute; bottom:0; left:0; right:0; z-index:5; height:96px; display:flex; align-items:center; justify-content:center; gap:18px;
+    background:linear-gradient(90deg,var(--orange),#FF8A3D); font-size:30px; font-weight:900; letter-spacing:.01em; }
+  .ft .qr { font-size:34px; }
+
+  /* idle / empty state */
+  .idle { position:relative; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; height:850px; text-align:center; gap:20px; }
+  .idle .em { font-size:140px; filter:drop-shadow(0 12px 40px rgba(244,184,46,.5)); animation:bob 2s ease-in-out infinite; }
+  .idle .t1 { font-size:64px; font-weight:900; }
+  .idle .t2 { font-size:28px; font-weight:700; color:rgba(255,255,255,.6); max-width:1100px; }
+
+  /* winner takeover */
+  .winner { position:relative; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; height:980px; text-align:center; }
+  .winner .spot { position:absolute; top:-120px; left:50%; transform:translateX(-50%); width:1100px; height:1100px;
+    background:radial-gradient(circle, rgba(244,184,46,.22), transparent 60%); pointer-events:none; }
+  .winner .crown { font-size:170px; filter:drop-shadow(0 16px 50px rgba(244,184,46,.6)); animation:bob 2s ease-in-out infinite; }
+  .winner .kick { font-size:30px; font-weight:800; letter-spacing:.34em; text-transform:uppercase; color:var(--gold2); margin-top:10px; }
+  .winner .name { font-size:140px; font-weight:900; line-height:1; margin-top:14px;
+    background:linear-gradient(180deg,#fff 35%,var(--gold2)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 0 80px rgba(244,184,46,.35); }
+  .winner .sub { font-size:34px; font-weight:800; color:rgba(255,255,255,.8); margin-top:24px; }
+  .winner .pv { display:inline-flex; gap:10px; align-items:center; margin-top:8px; font-size:24px; font-weight:700; color:var(--gold2); }
+
+  /* live toast */
+  #toast { position:absolute; top:200px; left:50%; transform:translateX(-50%) translateY(-160%); z-index:60;
+    background:linear-gradient(135deg,#1FA85B,#28c46e); color:#fff; font-size:30px; font-weight:900; padding:20px 40px; border-radius:999px;
+    box-shadow:0 20px 60px rgba(31,168,91,.5); opacity:0; transition:transform .55s cubic-bezier(.16,1,.3,1), opacity .4s; }
+  #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+</style>
+</head>
+<body>
+  <div id="stage"><div id="board"></div></div>
+  <canvas id="confetti"></canvas>
+  <div id="toast"></div>
+
+  <script>
+  (function () {
+    'use strict';
+    const AV = ['linear-gradient(135deg,#FF6B2B,#FF9A4D)','linear-gradient(135deg,#1A6BFF,#5C97FF)','linear-gradient(135deg,#1FA85B,#5FD08C)','linear-gradient(135deg,#E5484D,#FF7A7E)','linear-gradient(135deg,#7C3AED,#A47BF0)','linear-gradient(135deg,#0EA5A5,#5FD0C8)','linear-gradient(135deg,#F4B82E,#FFD66B)'];
+    const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+    const MON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const initials = n => { const p=String(n||'').trim().split(/\s+/).filter(Boolean); if(!p.length)return'?'; return (p.length===1?p[0].slice(0,2):p[0][0]+p[p.length-1][0]).toUpperCase(); };
+    const avColor = s => { let h=0; const x=String(s||''); for(let i=0;i<x.length;i++)h=(h*31+x.charCodeAt(i))>>>0; return AV[h%AV.length]; };
+    const pad = n => String(n).padStart(2,'0');
+
+    const board = document.getElementById('board');
+    const stage = document.getElementById('stage');
+    function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); board.style.transform=`translate(-50%,-50%) scale(${s})`; }
+    addEventListener('resize', fit); fit();
+
+    /* ---------- confetti ---------- */
+    const cvs = document.getElementById('confetti');
+    const ctx = cvs.getContext('2d');
+    function sizeCanvas(){ cvs.width=innerWidth; cvs.height=innerHeight; }
+    addEventListener('resize', sizeCanvas); sizeCanvas();
+    let parts = [];
+    const COLORS = ['#F4B82E','#FFD66B','#FF6B2B','#5C97FF','#1FA85B','#fff'];
+    function burst(n, fromTop){
+      for(let i=0;i<n;i++) parts.push({
+        x: Math.random()*cvs.width, y: fromTop ? -20 : cvs.height*0.35 + Math.random()*60,
+        vx:(Math.random()-0.5)*9, vy: fromTop ? 2+Math.random()*4 : -6-Math.random()*7,
+        g:0.18+Math.random()*0.12, s:7+Math.random()*9, r:Math.random()*6.28, vr:(Math.random()-0.5)*0.3,
+        c:COLORS[(Math.random()*COLORS.length)|0], life:1
+      });
+    }
+    let rain=false, rainT=null;
+    function startRain(){ rain=true; clearTimeout(rainT); rainT=setTimeout(()=>rain=false, 9000); }
+    function frame(){
+      ctx.clearRect(0,0,cvs.width,cvs.height);
+      if(rain && Math.random()<0.6) burst(6,true);
+      for(const p of parts){ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; if(p.y>cvs.height*0.5 && !rain) p.life-=0.012; if(p.y>cvs.height+30)p.life=0;
+        ctx.save(); ctx.globalAlpha=Math.max(0,p.life); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle=p.c; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); ctx.restore(); }
+      parts = parts.filter(p=>p.life>0 && p.y<cvs.height+40);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    /* ---------- toast ---------- */
+    const toastEl = document.getElementById('toast'); let toastT=null;
+    function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove('show'),3500); }
+
+    /* ---------- render ---------- */
+    function ringSVG(pct){
+      const r=70, c=2*Math.PI*r, off=c*(1-pct/100);
+      return `<svg class="ring" width="170" height="170" viewBox="0 0 170 170">
+        <circle cx="85" cy="85" r="${r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="16"/>
+        <circle cx="85" cy="85" r="${r}" fill="none" stroke="#F4B82E" stroke-width="16" stroke-linecap="round"
+          stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 85 85)" style="transition:stroke-dashoffset 1s ease"/>
+        <text x="85" y="78" text-anchor="middle" font-size="38" font-weight="900" fill="#fff">${pct}%</text>
+        <text x="85" y="106" text-anchor="middle" font-size="15" font-weight="700" fill="rgba(255,255,255,.55)">IKUT VOTE</text>
+      </svg>`;
+    }
+    function clockHTML(){ const n=new Date(); return `<div class="t">${pad(n.getHours())}:${pad(n.getMinutes())}</div><div class="d">${DAYS[n.getDay()]}, ${n.getDate()} ${MON[n.getMonth()]} ${n.getFullYear()}</div>`; }
+
+    function render(s){
+      const open = s.status==='open';
+      const tally = s.tally || [];
+      const closedWinner = !open && s.winner;
+
+      // WINNER TAKEOVER
+      if (closedWinner && s.winner.mode!=='per_value') {
+        const w=s.winner; const bv=Object.entries(w.byValue||{}).sort((a,b)=>b[1]-a[1])[0];
+        const cv=bv ? (s.coreValues.find(c=>c.key===bv[0])||{}) : null;
+        board.innerHTML = `<div class="winner"><div class="spot"></div>
+          <div class="crown">👑</div>
+          <div class="kick">Employee of the Month · ${esc(s.title||'')}</div>
+          <div class="name">${esc(w.name)}</div>
+          <div class="sub">🎉 Selamat & terima kasih atas kontribusinya! 🎉</div>
+          <div class="pv">🗳️ ${w.votes} suara${cv?` · paling sering: ${cv.emoji} ${esc(cv.label)}`:''}</div>
+        </div>`;
+        return;
+      }
+      if (closedWinner && s.winner.mode==='per_value') {
+        const items=(s.coreValues||[]).map(cv=>{ const x=s.winner.perValue&&s.winner.perValue[cv.key]; return `<div class="cand"><div class="rk">${cv.emoji}</div><div class="cbody"><div class="cname">${esc(cv.label)}</div></div><div class="votes"><div class="n" style="font-size:30px;">${x?esc(x.name):'—'}</div><div class="l">${x?x.votes+' suara':''}</div></div></div>`;}).join('');
+        board.innerHTML = `<div class="hd"><div class="mark"><img src="/assets/antarestar-logo.jpg"></div><div class="ttl"><div class="kick">Juara Per Core Value</div><div class="big">Employee of the Month</div><div class="sub">${esc(s.title||'')}</div></div><div class="live off">SELESAI</div></div><div style="padding:40px 64px;display:flex;flex-direction:column;gap:18px;">${items}</div>`;
+        return;
+      }
+
+      // IDLE (belum dibuka, belum ada pemenang)
+      if (!open && tally.length===0) {
+        const champ = (s.history&&s.history[0]) ? s.history[0] : null;
+        board.innerHTML = `<div class="hd"><div class="mark"><img src="/assets/antarestar-logo.jpg"></div>
+          <div class="ttl"><div class="kick">⭐ Employee of the Month</div><div class="big">Penghargaan Karyawan Terbaik</div></div>
+          <div class="clock">${clockHTML()}</div></div>
+          <div class="idle"><div class="em">⭐</div><div class="t1">Voting Belum Dibuka</div>
+          <div class="t2">Sesi voting Employee of the Month bakal dibuka admin tiap awal bulan. Pantau terus layar ini ya!</div>
+          ${champ&&champ.winner&&champ.winner.name?`<div class="t2" style="color:var(--gold2);font-weight:900;font-size:32px;">👑 Juara ${esc(champ.title||'')}: ${esc(champ.winner.name)}</div>`:''}</div>
+          <div class="ft"><span class="qr">📱</span> Vote di idea.antarestar.com → ⭐ Employee of the Month</div>`;
+        return;
+      }
+
+      // LIVE RACE
+      const max = tally.length ? Math.max(1, tally[0].votes) : 1;
+      const pct = s.totalMembers ? Math.min(100, Math.round(s.totalVotes/s.totalMembers*100)) : 0;
+      const cvDist = {}; tally.forEach(r=>Object.entries(r.byValue||{}).forEach(([k,c])=>cvDist[k]=(cvDist[k]||0)+c));
+      const cvMax = Math.max(1, ...Object.values(cvDist), 1);
+      const cands = tally.slice(0,6).map((r,i)=>{
+        const lead = i===0;
+        const medal = i<3 ? ['🥇','🥈','🥉'][i] : (i+1);
+        const bv = Object.entries(r.byValue||{}).sort((a,b)=>b[1]-a[1])[0];
+        const cv = bv ? (s.coreValues.find(c=>c.key===bv[0])||{}) : null;
+        return `<div class="cand${lead?' lead':''}">
+          <div class="rk">${medal}</div>
+          <div class="av" style="background:${avColor(r.name)}">${esc(initials(r.name))}</div>
+          <div class="cbody"><div class="cname">${esc(r.name)}${lead?' <span class="crown">👑</span>':''}</div>
+            ${cv?`<div class="cv">${cv.emoji} ${esc(cv.label)}</div>`:''}
+            <div class="bar"><i style="width:${Math.round(r.votes/max*100)}%"></i></div></div>
+          <div class="votes"><div class="n">${r.votes}</div><div class="l">SUARA</div></div>
+        </div>`;
+      }).join('');
+      const cvRows = (s.coreValues||[]).map(cv=>{ const v=cvDist[cv.key]||0; return `<div class="cvrow"><span class="e">${cv.emoji}</span><span class="nm">${esc(cv.label)}</span><span class="bar"><i style="width:${Math.round(v/cvMax*100)}%"></i></span><span class="n">${v}</span></div>`;}).join('');
+
+      board.innerHTML = `
+        <div class="hd"><div class="mark"><img src="/assets/antarestar-logo.jpg"></div>
+          <div class="ttl"><div class="kick">⭐ Employee of the Month</div><div class="big">Voting Karyawan Terbaik</div><div class="sub">${esc(s.title||'')}</div></div>
+          <div class="live${open?'':' off'}"><span class="dot"></span> ${open?'VOTING LIVE':'DITUTUP'}</div>
+          <div class="clock" style="margin-left:30px;">${clockHTML()}</div></div>
+        <div class="main">
+          <div class="cands"><div class="cands-h">🏅 Perolehan Suara — Live</div>${cands || '<div class="cv">Belum ada suara.</div>'}</div>
+          <div class="side">
+            <div class="panel tot"><div class="num" data-count>${s.totalVotes}</div><div class="lbl">Total Suara</div>
+              ${ringSVG(pct)}<div class="part">${s.totalVotes} dari ${s.totalMembers||'—'} karyawan ikut</div></div>
+            <div class="panel"><div class="cvh">🎯 Sebaran Core Value</div>${cvRows}</div>
+          </div>
+        </div>
+        <div class="ft"><span class="qr">📱</span> Ikut vote sekarang: idea.antarestar.com → ⭐ Employee of the Month</div>`;
+    }
+
+    /* ---------- load + live ---------- */
+    let prevTotal = -1, prevWinnerName = null;
+    function handle(s){
+      const open = s.status==='open';
+      if (prevTotal>=0 && open && s.totalVotes>prevTotal) { burst(70); toast('✨ Suara baru masuk!'); }
+      const wname = (s.winner&&s.winner.name)||null;
+      if (s.status!=='open' && wname && wname!==prevWinnerName) { startRain(); burst(120); }
+      prevTotal = s.totalVotes; prevWinnerName = wname;
+      render(s);
+    }
+    function load(){ fetch('/api/eotm').then(r=>r.json()).then(handle).catch(()=>{}); }
+    load();
+    // clock tick (re-render clock cheaply by reloading state every 30s + local clock each sec)
+    setInterval(()=>{ const t=board.querySelector('.clock'); if(t) t.innerHTML=clockHTML(); }, 1000);
+    setInterval(load, 20000); // fallback poll
+    let _eotmDeb=null; const dLoad=()=>{ clearTimeout(_eotmDeb); _eotmDeb=setTimeout(load, 1200); };
+    try { const eo=new EventSource('/api/stream'); eo.addEventListener('eotm', dLoad); eo.onerror=()=>{try{eo.close();}catch(e){}; setTimeout(()=>{ const n=new EventSource('/api/stream'); n.addEventListener('eotm',dLoad); },5000); }; } catch(e){}
+  })();
+  </script>
+</body>
+</html>

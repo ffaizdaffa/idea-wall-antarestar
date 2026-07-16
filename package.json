@@ -1,0 +1,31 @@
+{
+  "name": "idea-wall-antarestar",
+  "version": "1.0.0",
+  "description": "Idea Wall Antarestar — an internal social idea-board web app: post improvement ideas with photos, like & comment, realtime feed, leaderboard, Employee of the Month voting, TV signage dashboard, admin panel, and a built-in mini-game. Express + JSON storage, no database.",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "idea-board",
+    "suggestion-box",
+    "social",
+    "express",
+    "sse",
+    "leaderboard",
+    "employee-engagement",
+    "vanilla-js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "optionalDependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

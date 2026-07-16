@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Idea Wall — Antarestar</title>
+<meta name="theme-color" content="#FF6B2B">
+<link rel="icon" href="/assets/antarestar-logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="/assets/app.css?v=18">
+</head>
+<body>
+  <div class="app">
+    <header class="head" id="head">
+      <span class="logo-tile" style="width:34px;height:34px;border-radius:9px;padding:3px;">
+        <img src="/assets/antarestar-logo.jpg" alt="Antarestar">
+      </span>
+      <span class="brand-word">Antarestar <span>Idea</span></span>
+      <span class="live-dot" title="Live"></span>
+      <div style="flex:1;min-width:0;"></div>
+      <span id="notif-slot"></span>
+      <a class="head-icon" id="profile-link" href="/login" title="Profil">👤</a>
+      <span id="menu-slot"></span>
+    </header>
+
+    <div id="eotm-banner-slot"></div>
+    <div id="featured-slot"></div>
+
+    <main class="feed" id="feed">
+      <div class="empty">Memuat ide…</div>
+    </main>
+    <div id="feed-sentinel" aria-hidden="true" style="height:1px;"></div>
+
+    <a class="fab" href="/form" aria-label="Tambah ide baru"><span class="plus">+</span><span class="fab-label">Tambah Ide</span></a>
+  </div>
+
+  <script src="/assets/app.js?v=17"></script>
+  <script>
+  (function () {
+    const { esc, formatTime, pad4, hasLiked, setLiked, avatarHTML, connectStream, toast, lightbox, STATUS, attachMenu, attachNotifBell } = window.IW;
+    const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3l-1.45-1.32C5.4 14.25 2 11.18 2 7.4 2 4.42 4.42 2 7.4 2c1.68 0 3.3.78 4.6 2.08C13.3 2.78 14.92 2 16.6 2 19.58 2 22 4.42 22 7.4c0 3.78-3.4 6.85-8.55 11.58L12 20.3z" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+    const CHAT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 9 9 0 0 1-3.8-.8L3 21l1.3-5a8.2 8.2 0 0 1-.8-3.5A8.4 8.4 0 0 1 12 4a8.4 8.4 0 0 1 9 7.5z" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+    const feedEl = document.getElementById('feed');
+    const featuredSlot = document.getElementById('featured-slot');
+    let ideas = [];
+    let me = null;
+
+    /* overflow menu in app bar -> reach all surfaces */
+    document.getElementById('menu-slot').appendChild(attachMenu([
+      { href: '/form', icon: '💡', label: 'Kirim Ide' },
+      { href: '/leaderboard', icon: '🏆', label: 'Leaderboard' },
+      { href: '/diterapkan', icon: '🏅', label: 'Sudah Diterapkan' },
+      { href: '/game', icon: '🎮', label: 'Kejar Antares' },
+      { href: '/profile', icon: '👤', label: 'Profil Saya' },
+      { sep: true },
+      { href: '/tv', icon: '📺', label: 'Tampilan TV' },
+      { href: '/admin', icon: '🔒', label: 'Admin' },
+    ]));
+    document.getElementById('notif-slot').appendChild(attachNotifBell());
+
+    function trophyId() {
+      let best = null;
+      for (const i of ideas) {
+        if ((i.likes || 0) > 0 && (!best || i.likes > best.likes)) best = i;
+      }
+      return best ? best.id : null;
+    }
+
+    function renderFeatured() {
+      const id = trophyId();
+      const top = id ? ideas.find(i => i.id === id) : null;
+      if (!top) { featuredSlot.innerHTML = ''; return; }
+      featuredSlot.innerHTML = `
+        <div class="featured" data-goto="${top.id}" role="button" tabindex="0" title="Lihat ide terfavorit">
+          <span class="em">🏆</span>
+          <div class="body">
+            <div class="kick">Ide Terfavorit</div>
+            <div class="txt">${esc(top.text)}</div>
+          </div>
+          <span class="likes">❤️ ${top.likes || 0}</span>
+        </div>`;
+    }
+
+    function gotoIdea(id) {
+      const card = feedEl.querySelector('.card[data-id="' + id + '"]');
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('flash');
+      setTimeout(() => card.classList.remove('flash'), 1600);
+    }
+    featuredSlot.addEventListener('click', e => {
+      const f = e.target.closest('[data-goto]'); if (f) gotoIdea(+f.dataset.goto);
+    });
+    featuredSlot.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const f = e.target.closest('[data-goto]'); if (f) { e.preventDefault(); gotoIdea(+f.dataset.goto); }
+    });
+
+    function pillHTML(status) {
+      const s = STATUS[status] || STATUS.pending;
+      return `<span class="pill ${s.cls}">${s.icon} ${s.label}</span>`;
+    }
+    const CAT = {
+      ide_perbaikan: { icon: '💡', label: 'Ide Perbaikan', cls: 'cat-ide' },
+      sports_day:    { icon: '🏆', label: 'Sports Day',    cls: 'cat-sport' },
+    };
+    function catBadge(category) {
+      const c = CAT[category] || CAT.ide_perbaikan;
+      return `<span class="catb ${c.cls}">${c.icon} ${c.label}</span>`;
+    }
+
+    function commentsHTML(idea) {
+      const list = (idea.comments || []).map(c => `
+        <div class="comment">
+          ${avatarHTML({ name: c.name, memberAvatar: c.memberAvatar, id: c.id }, 30)}
+          <div class="body">
+            <div class="meta">${esc(c.name)}<span class="t">${formatTime(c.ts)}</span></div>
+            <div class="txt">${esc(c.text)}</div>
+          </div>
+        </div>`).join('');
+      return `
+        <div class="comments" data-comments="${idea.id}" style="display:none;">
+          <div class="comments-inner">
+            <div data-clist="${idea.id}">${list || '<div style="color:var(--faint);font-size:13px;font-weight:600;padding:4px 0 10px;">Belum ada komentar.</div>'}</div>
+            <form class="comment-form" data-cform="${idea.id}">
+              <input type="text" placeholder="Tulis komentar…" maxlength="300" required>
+              <button type="submit">Kirim</button>
+            </form>
+          </div>
+        </div>`;
+    }
+
+    function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function ownTag(idea) { return (me && idea.memberId && me.id === idea.memberId) ? '<span class="own-tag">💙 Idemu</span>' : ''; }
+    function picLine(idea) {
+      if (!(idea.pic || idea.due)) return '';
+      const over = idea.due && idea.status !== 'done' && idea.due < todayStr();
+      return `<div class="pic-line${over ? ' over' : ''}">👤 PIC: <b>${esc(idea.pic || '—')}</b>${idea.due ? ` · ⏰ ${esc(idea.due)}${over ? ' (lewat)' : ''}` : ''}</div>`;
+    }
+    function progressBlock(idea) {
+      const p = idea.progress || [];
+      if (!p.length && !idea.impact) return '';
+      const notes = p.map(n => `<div class="pgi"><span class="pgi-d">${formatTime(n.ts)}</span> ${esc(n.text)}</div>`).join('');
+      const imp = idea.impact ? `<div class="pgi done">🏁 <b>Hasil:</b> ${esc(idea.impact)}</div>` : '';
+      return `<div class="prog-block"><div class="prog-h">📌 Update Resmi</div>${notes}${imp}</div>`;
+    }
+    function cardHTML(idea) {
+      const liked = hasLiked(idea.id);
+      const isTrophy = idea.id === trophyId();
+      const photo = idea.photo
+        ? `<div class="card-photo" data-photo="${esc(idea.photo)}"><img src="${esc(idea.photo)}" alt="Foto ide" loading="lazy" decoding="async"></div>`
+        : '';
+      const trophy = isTrophy ? '<div class="trophy-tag">🏆</div>' : '';
+      const cnt = (idea.comments || []).length;
+      return `
+        <article class="card${isTrophy ? ' trophy' : ''}" data-id="${idea.id}" style="position:relative;">
+          ${trophy}
+          <div class="heart-burst" data-burst="${idea.id}">❤️</div>
+          <div class="card-head">
+            ${avatarHTML(idea, 38)}
+            <div style="flex:1;min-width:0;">
+              <div class="card-name">${esc(idea.name)}${isTrophy ? ' <span style="font-size:14px;">🏆</span>' : ''}</div>
+              <div class="card-time">${formatTime(idea.ts)}</div>
+            </div>
+            ${pillHTML(idea.status)}
+          </div>
+          ${photo}
+          <div class="card-act-row">
+            <button class="hbtn like${liked ? ' on' : ''}" data-like="${idea.id}" aria-label="Suka">${HEART}<span class="n">${idea.likes || 0}</span></button>
+            <button class="hbtn cmt" data-toggle="${idea.id}" aria-label="Komentar">${CHAT}<span class="n">${cnt}</span></button>
+            <span class="card-num">#${pad4(idea.id)}</span>
+          </div>
+          <div class="card-meta">
+            <div style="margin-bottom:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${catBadge(idea.category)}${ownTag(idea)}</div>
+            <p class="card-text"><b>${esc(idea.name)}</b> ${esc(idea.text)}</p>
+            ${picLine(idea)}
+            ${progressBlock(idea)}
+            ${cnt ? `<button class="see-cmt" data-toggle="${idea.id}">Lihat ${cnt} komentar</button>` : ''}
+          </div>
+          ${commentsHTML(idea)}
+        </article>`;
+    }
+
+    let shown = 0;
+    const PAGE = 50;
+    function render() {
+      if (!ideas.length) { featuredSlot.innerHTML = ''; feedEl.innerHTML = '<div class="empty">Belum ada ide. Jadilah yang pertama! 💡</div>'; shown = 0; return; }
+      ideas.sort((a, b) => b.ts - a.ts);
+      renderFeatured();
+      // pertahankan jumlah yg sudah tampil (biar SSE re-render nggak reset scroll); minimal 1 halaman
+      if (typeof IntersectionObserver === 'undefined') shown = ideas.length; // browser jadul: tampil semua
+      else shown = shown === 0 ? Math.min(PAGE, ideas.length) : Math.min(shown, ideas.length);
+      feedEl.innerHTML = ideas.slice(0, shown).map(cardHTML).join('');
+    }
+    function appendMore() {
+      if (shown >= ideas.length) return;
+      const next = ideas.slice(shown, shown + PAGE);
+      feedEl.insertAdjacentHTML('beforeend', next.map(cardHTML).join(''));
+      shown += next.length;
+    }
+
+    function findIdea(id) { return ideas.find(i => i.id === id); }
+
+    /* ---- like (optimistic + dedup) ---- */
+    function doLike(id, btn) {
+      const idea = findIdea(id);
+      if (!idea) return;
+      const liked = hasLiked(id);
+      const delta = liked ? -1 : 1;
+      setLiked(id, !liked);
+      idea.likes = Math.max(0, (idea.likes || 0) + delta);
+      btn.classList.toggle('on', !liked);
+      const nEl = btn.querySelector('.n');
+      if (nEl) nEl.textContent = idea.likes;
+      renderFeatured();
+      fetch('/api/idea/' + id + '/like', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delta }),
+      }).catch(() => {});
+    }
+
+    function burst(id) {
+      const el = document.querySelector('[data-burst="' + id + '"]');
+      if (!el) return;
+      el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
+    }
+
+    /* ---- events ---- */
+    feedEl.addEventListener('click', e => {
+      const likeBtn = e.target.closest('[data-like]');
+      if (likeBtn) { doLike(parseInt(likeBtn.dataset.like, 10), likeBtn); return; }
+      const toggle = e.target.closest('[data-toggle]');
+      if (toggle) {
+        const box = feedEl.querySelector('[data-comments="' + toggle.dataset.toggle + '"]');
+        const open = box.style.display !== 'none';
+        box.style.display = open ? 'none' : 'block';
+        toggle.classList.toggle('open', !open);
+        return;
+      }
+      const photo = e.target.closest('[data-photo]');
+      if (photo) { lightbox(photo.dataset.photo); return; }
+    });
+
+    /* double-tap heart */
+    let lastTap = {};
+    feedEl.addEventListener('click', e => {
+      const card = e.target.closest('.card');
+      if (!card) return;
+      if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.comment-form')) return;
+      const id = parseInt(card.dataset.id, 10);
+      const now = Date.now();
+      if (lastTap[id] && now - lastTap[id] < 320) {
+        if (!hasLiked(id)) doLike(id, card.querySelector('[data-like]'));
+        burst(id);
+        lastTap[id] = 0;
+      } else { lastTap[id] = now; }
+    });
+
+    /* comment submit */
+    feedEl.addEventListener('submit', e => {
+      const form = e.target.closest('[data-cform]');
+      if (!form) return;
+      e.preventDefault();
+      const id = parseInt(form.dataset.cform, 10);
+      const input = form.querySelector('input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      fetch('/api/idea/' + id + '/comment', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      }).then(r => r.json()).then(res => {
+        if (res.error) toast(res.error, true);
+      }).catch(() => toast('Gagal kirim komentar', true));
+    });
+
+    function addCommentToDOM(id, comment) {
+      const idea = findIdea(id);
+      if (idea) { if (!idea.comments) idea.comments = []; if (!idea.comments.find(c => c.id === comment.id)) idea.comments.push(comment); }
+      const list = feedEl.querySelector('[data-clist="' + id + '"]');
+      if (list) {
+        const placeholder = list.querySelector('div[style]');
+        if (placeholder && /Belum ada komentar/.test(placeholder.textContent)) placeholder.remove();
+        const div = document.createElement('div');
+        div.className = 'comment';
+        div.innerHTML = `${avatarHTML({ name: comment.name, memberAvatar: comment.memberAvatar, id: comment.id }, 30)}
+          <div class="body"><div class="meta">${esc(comment.name)}<span class="t">${formatTime(comment.ts)}</span></div>
+          <div class="txt">${esc(comment.text)}</div></div>`;
+        list.appendChild(div);
+      }
+      if (idea) {
+        const card = feedEl.querySelector('.card[data-id="' + id + '"]');
+        const see = card && card.querySelector('.see-cmt');
+        if (see) see.textContent = 'Lihat ' + idea.comments.length + ' komentar';
+      }
+    }
+
+    /* ---- SSE live ---- */
+    connectStream({
+      idea(payload) {
+        if (!findIdea(payload.id)) { ideas.unshift(payload); render(); toast('Ide baru masuk! 💡'); }
+      },
+      delete(payload) {
+        const i = ideas.findIndex(x => x.id === payload.id);
+        if (i > -1) { ideas.splice(i, 1); render(); }
+      },
+      status(payload) {
+        const idea = findIdea(payload.id);
+        if (idea) { idea.status = payload.status; if (payload.impact != null) idea.impact = payload.impact; render(); }
+      },
+      assign(payload) {
+        const idea = findIdea(payload.id);
+        if (idea) { idea.pic = payload.pic; idea.due = payload.due; render(); }
+      },
+      progress(payload) {
+        const idea = findIdea(payload.id);
+        if (idea) { if (!idea.progress) idea.progress = []; idea.progress.push(payload.note); render(); }
+      },
+      like(payload) {
+        const idea = findIdea(payload.id);
+        if (idea) {
+          idea.likes = payload.likes;
+          const card = feedEl.querySelector('.card[data-id="' + payload.id + '"]');
+          const nEl = card && card.querySelector('.hbtn.like .n');
+          if (nEl) nEl.textContent = payload.likes;
+          renderFeatured();
+        }
+      },
+      comment(payload) { addCommentToDOM(payload.id, payload.comment); },
+    });
+
+    /* ---- load ---- */
+    fetch('/api/member/me').then(r => r.json()).then(d => {
+      me = d.member;
+      const link = document.getElementById('profile-link');
+      if (me) { link.href = '/profile'; link.textContent = ''; link.innerHTML = avatarHTML(me, 34); if (ideas.length) render(); }
+    }).catch(() => {});
+
+    fetch('/api/ideas').then(r => r.json()).then(d => {
+      ideas = d.ideas || [];
+      render();
+    }).catch(() => { feedEl.innerHTML = '<div class="empty">Gagal memuat ide.</div>'; });
+
+    /* banner ajakan voting EOTM (kalau lagi dibuka) */
+    fetch('/api/eotm').then(r => r.json()).then(s => {
+      if (s.status === 'open') {
+        document.getElementById('eotm-banner-slot').innerHTML =
+          '<a class="eotm-cta" href="/form"><span class="ic">⭐</span><div class="bd"><b>Voting Employee of the Month dibuka!</b><div class="sb">Pilih karyawan terbaik bulan ini — ' + esc(s.title || '') + ' →</div></div></a>';
+      }
+    }).catch(() => {});
+
+    /* infinite scroll: muat 50 ide berikutnya pas mendekati bawah feed */
+    try {
+      const io = new IntersectionObserver(function (entries) {
+        if (entries.some(function (e) { return e.isIntersecting; }) && shown < ideas.length) appendMore();
+      }, { rootMargin: '800px' });
+      io.observe(document.getElementById('feed-sentinel'));
+    } catch (e) { /* IO tak didukung → render semua sekaligus saat ideas siap */ window.__noIO = true; }
+  })();
+  </script>
+</body>
+</html>
