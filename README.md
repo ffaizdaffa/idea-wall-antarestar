@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/banner.png" alt="Idea Wall — a community-powered platform for sharing, voting, and building the best ideas together" width="100%" />
+</p>
+
 # 💡 Idea Wall Antarestar
 
 **A social idea board that makes your team's suggestion box actually work.**
