@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Progres Ide — Idea Wall Antarestar</title>
+<meta name="theme-color" content="#FF6B2B">
+<link rel="icon" href="/assets/antarestar-logo.jpg">
+<link rel="stylesheet" href="/assets/app.css?v=20">
+<style>
+  /* ---- Progres: satu ruang untuk melacak ide ---- */
+  .head .brand { flex: none; min-width: 0; }
+  .head .brand * { white-space: nowrap; }
+  .pg-intro { padding: 18px 16px 4px; }
+  .pg-intro h1 { font-size: 22px; font-weight: 900; letter-spacing: -.02em; }
+  .pg-intro p { color: var(--muted); font-size: 13.5px; font-weight: 600; margin-top: 5px; line-height: 1.45; max-width: 60ch; }
+
+  /* ringkasan angka: baris, bukan kartu-kartu identik */
+  .pg-sum { display: flex; gap: 22px; padding: 14px 18px 0; }
+  .pg-sum b { display: block; font-size: 26px; font-weight: 900; line-height: 1; letter-spacing: -.02em; }
+  .pg-sum span { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+  .pg-sum .s-wip b { color: #1A6BFF; }
+  .pg-sum .s-done b { color: #1FA85B; }
+  .pg-sum .s-mine b { color: var(--accent); }
+
+  /* filter segmented */
+  .pg-tabs { display: flex; gap: 6px; padding: 16px 16px 10px; position: sticky; top: 0; z-index: 5;
+    background: linear-gradient(var(--bg) 72%, transparent); }
+  .pg-tab { flex: 1; border: 1px solid var(--border); background: var(--card); color: var(--muted);
+    font-family: inherit; font-weight: 800; font-size: 13px; padding: 10px 6px; border-radius: 11px;
+    transition: background .18s cubic-bezier(.22,1,.36,1), color .18s; }
+  .pg-tab[aria-selected="true"] { background: var(--text); color: var(--card); border-color: var(--text); }
+  .pg-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* item ide — border penuh, tanpa strip samping */
+  .pg-list { padding: 0 16px 90px; display: flex; flex-direction: column; gap: 12px; }
+  .pg-item { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 15px 16px 14px; }
+  .pg-item.mine { border-color: rgba(255,107,43,.42); background: linear-gradient(180deg, rgba(255,107,43,.045), var(--card) 60%); }
+  .pg-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
+  .pg-chip { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 4px 10px; letter-spacing: .01em; }
+  .pg-chip.wip { color: #0B3C91; background: rgba(26,107,255,.13); }
+  .pg-chip.done { color: #15663a; background: rgba(31,168,91,.15); }
+  .pg-chip.pending { color: #8a6a12; background: rgba(240,180,40,.16); }
+  .pg-chip.own { color: var(--accent); background: rgba(255,107,43,.13); }
+  .pg-meta { font-size: 11.5px; font-weight: 700; color: var(--faint); margin-left: auto; }
+  .pg-text { font-size: 14.5px; font-weight: 600; line-height: 1.5; color: var(--text); }
+  .pg-who { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 7px; }
+
+  /* stepper 3 tahap */
+  .pg-step { display: flex; align-items: center; gap: 5px; margin-top: 13px; }
+  .pg-step .d { width: 20px; height: 20px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    font-size: 10.5px; font-weight: 900; color: var(--faint); background: var(--bg); border: 1.5px solid var(--border); }
+  .pg-step .l { font-size: 10.5px; font-weight: 800; color: var(--faint); white-space: nowrap; }
+  .pg-step .bar { flex: 1; height: 2px; background: var(--border); border-radius: 2px; min-width: 12px; }
+  .pg-step .on .d { color: #fff; background: #1FA85B; border-color: #1FA85B; }
+  .pg-step .on .l { color: #15663a; }
+  .pg-step .bar.on { background: #1FA85B; }
+  .pg-step .now .d { color: #fff; background: #1A6BFF; border-color: #1A6BFF; }
+  .pg-step .now .l { color: #0B3C91; }
+
+  /* log update */
+  .pg-log { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 11px; }
+  .pg-log h4 { font-size: 10.5px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  .pg-note { display: flex; gap: 9px; font-size: 13px; font-weight: 600; line-height: 1.45; color: var(--text); margin-bottom: 7px; }
+  .pg-note:last-child { margin-bottom: 0; }
+  .pg-note time { flex: none; font-size: 11px; font-weight: 800; color: var(--faint); padding-top: 1px; min-width: 62px; }
+  .pg-note.result { color: #15663a; font-weight: 700; }
+
+  /* empty state yang mengajari */
+  .pg-empty { text-align: center; padding: 44px 26px; color: var(--muted); }
+  .pg-empty .e { font-size: 34px; display: block; margin-bottom: 10px; }
+  .pg-empty b { display: block; color: var(--text); font-size: 15px; margin-bottom: 6px; }
+  .pg-empty p { font-size: 13.5px; line-height: 1.5; font-weight: 600; max-width: 42ch; margin: 0 auto 14px; }
+  .pg-cta { display: inline-block; background: var(--accent); color: #fff; font-weight: 800; font-size: 13.5px;
+    padding: 11px 20px; border-radius: 999px; text-decoration: none; }
+
+  /* skeleton, bukan spinner */
+  .sk { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 15px 16px; }
+  .sk div { height: 11px; border-radius: 6px; background: linear-gradient(90deg, var(--bg) 25%, rgba(0,0,0,.05) 37%, var(--bg) 63%);
+    background-size: 400% 100%; animation: shim 1.3s ease-in-out infinite; margin-bottom: 8px; }
+  .sk div:nth-child(1) { width: 34%; } .sk div:nth-child(2) { width: 92%; } .sk div:nth-child(3) { width: 68%; margin-bottom: 0; }
+  @keyframes shim { 0% { background-position: 100% 0 } 100% { background-position: 0 0 } }
+  @media (prefers-reduced-motion: reduce) { .sk div { animation: none } }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="head">
+      <a class="brand" href="/" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><span id="brand-slot"></span></a>
+      <div style="flex:1;min-width:0;"></div>
+      <span id="notif-slot"></span>
+      <a class="head-icon" href="/" title="Feed" style="text-decoration:none;">🏠</a>
+      <span id="menu-slot"></span>
+    </header>
+
+    <div class="pg-intro">
+      <h1>🔧 Progres Ide</h1>
+      <p>Lacak ide kamu dan lihat apa saja yang sedang dikerjakan tim, lengkap dengan update resminya.</p>
+    </div>
+    <div class="pg-sum" id="sum"></div>
+
+    <div class="pg-tabs" role="tablist" aria-label="Saring progres">
+      <button class="pg-tab" role="tab" data-f="mine" aria-selected="true">Ide Kamu</button>
+      <button class="pg-tab" role="tab" data-f="wip" aria-selected="false">Dikerjakan</button>
+      <button class="pg-tab" role="tab" data-f="done" aria-selected="false">Selesai</button>
+    </div>
+
+    <main class="pg-list" id="list">
+      <div class="sk"><div></div><div></div><div></div></div>
+      <div class="sk"><div></div><div></div><div></div></div>
+    </main>
+  </div>
+
+  <script src="/assets/app.js?v=20"></script>
+  <script>
+  (function () {
+    const { esc, formatTime, attachMenu, brandLockup, attachNotifBell } = window.IW;
+    document.getElementById('brand-slot').innerHTML = brandLockup({ tile: 34, fontSize: 17 });
+    document.getElementById('menu-slot').appendChild(attachMenu([
+      { icon: '💡', label: 'Kirim Ide', href: '/form' },
+      { icon: '🏅', label: 'Sudah Diterapkan', href: '/diterapkan' },
+      { icon: '🏆', label: 'Leaderboard', href: '/leaderboard' },
+      { icon: '👤', label: 'Profil Saya', href: '/profile' },
+      { sep: true },
+      { icon: '📺', label: 'Tampilan TV', href: '/tv' },
+      { icon: '🔒', label: 'Admin', href: '/admin' },
+    ]));
+    document.getElementById('notif-slot').appendChild(attachNotifBell());
+
+    const listEl = document.getElementById('list');
+    const sumEl = document.getElementById('sum');
+    let ideas = [], me = null, filter = 'mine';
+
+    const STEPS = ['Diterima', 'Dikerjakan', 'Selesai'];
+    function stepper(status) {
+      const at = status === 'done' ? 3 : status === 'in_progress' ? 2 : 1;
+      let h = '<div class="pg-step">';
+      STEPS.forEach((n, i) => {
+        const idx = i + 1;
+        const cls = idx < at ? 'on' : idx === at ? (status === 'done' ? 'on' : 'now') : '';
+        h += `<div class="${cls}" style="display:flex;align-items:center;gap:5px">
+          <span class="d">${idx < at || (idx === at && status === 'done') ? '✓' : idx}</span><span class="l">${n}</span></div>`;
+        if (i < 2) h += `<div class="bar${idx < at ? ' on' : ''}"></div>`;
+      });
+      return h + '</div>';
+    }
+
+    function logHTML(i) {
+      const notes = i.progress || [];
+      if (!notes.length && !i.impact) return '';
+      const rows = notes.map(n => `<div class="pg-note"><time>${formatTime(n.ts)}</time><span>${esc(n.text)}</span></div>`).join('');
+      const res = i.impact ? `<div class="pg-note result"><time>Hasil</time><span>${esc(i.impact)}</span></div>` : '';
+      return `<div class="pg-log"><h4>Update dari tim</h4>${rows}${res}</div>`;
+    }
+
+    function itemHTML(i, isMine) {
+      const st = i.status || 'pending';
+      const chip = st === 'done' ? '<span class="pg-chip done">✅ Selesai</span>'
+        : st === 'in_progress' ? '<span class="pg-chip wip">🔧 Dikerjakan</span>'
+        : '<span class="pg-chip pending">⏳ Menunggu ditinjau</span>';
+      return `<article class="pg-item${isMine ? ' mine' : ''}">
+        <div class="pg-top">${chip}${isMine ? '<span class="pg-chip own">Idemu</span>' : ''}
+          <span class="pg-meta">${formatTime(i.ts)}</span></div>
+        <div class="pg-text">${esc(i.text)}</div>
+        ${i.pic ? `<div class="pg-who">Ditangani ${esc(i.pic)}${i.due ? ` · target ${esc(i.due)}` : ''}</div>`
+          : (isMine ? '' : `<div class="pg-who">${esc(i.name || 'Anonim')}</div>`)}
+        ${stepper(st)}
+        ${logHTML(i)}
+      </article>`;
+    }
+
+    function emptyHTML() {
+      if (filter === 'mine') {
+        return me
+          ? `<div class="pg-empty"><span class="e">💡</span><b>Kamu belum kirim ide</b>
+             <p>Setiap ide yang kamu kirim akan muncul di sini, lengkap dengan statusnya sampai selesai dikerjakan.</p>
+             <a class="pg-cta" href="/form">Kirim ide pertamamu</a></div>`
+          : `<div class="pg-empty"><span class="e">🔒</span><b>Masuk dulu untuk melacak idemu</b>
+             <p>Setelah masuk, semua ide yang kamu kirim bisa kamu pantau di sini.</p>
+             <a class="pg-cta" href="/login?return=%2Fprogres">Masuk</a></div>`;
+      }
+      if (filter === 'wip') {
+        return `<div class="pg-empty"><span class="e">🔧</span><b>Belum ada yang sedang dikerjakan</b>
+          <p>Begitu tim mulai menggarap sebuah ide, prosesnya muncul di sini beserta update resminya.</p></div>`;
+      }
+      return `<div class="pg-empty"><span class="e">🏅</span><b>Belum ada yang selesai</b>
+        <p>Ide yang sudah rampung akan tercatat di sini sebagai bukti hasil nyata.</p></div>`;
+    }
+
+    function render() {
+      const wip = ideas.filter(i => i.status === 'in_progress');
+      const done = ideas.filter(i => i.status === 'done');
+      const mine = me ? ideas.filter(i => i.memberId && i.memberId === me.id) : [];
+
+      sumEl.innerHTML = `
+        <div class="s-wip"><b>${wip.length}</b><span>Dikerjakan</span></div>
+        <div class="s-done"><b>${done.length}</b><span>Selesai</span></div>
+        <div class="s-mine"><b>${me ? mine.length : '—'}</b><span>Ide kamu</span></div>`;
+
+      const rows = filter === 'mine' ? mine : filter === 'wip' ? wip : done;
+      rows.sort((a, b) => b.ts - a.ts);
+      listEl.innerHTML = rows.length
+        ? rows.map(i => itemHTML(i, !!(me && i.memberId === me.id))).join('')
+        : emptyHTML();
+    }
+
+    document.querySelectorAll('.pg-tab').forEach(t => t.addEventListener('click', () => {
+      filter = t.dataset.f;
+      document.querySelectorAll('.pg-tab').forEach(x => x.setAttribute('aria-selected', String(x === t)));
+      render();
+    }));
+
+    Promise.all([
+      fetch('/api/ideas').then(r => r.json()).catch(() => ({ ideas: [] })),
+      fetch('/api/member/me').then(r => r.json()).catch(() => ({ member: null })),
+    ]).then(([d, m]) => {
+      ideas = d.ideas || []; me = m.member || null;
+      // buka langsung ke tab yang paling berguna
+      const mine = me ? ideas.filter(i => i.memberId === me.id) : [];
+      if (!mine.length) {
+        filter = 'wip';
+        document.querySelectorAll('.pg-tab').forEach(x => x.setAttribute('aria-selected', String(x.dataset.f === 'wip')));
+      }
+      render();
+    });
+  })();
+  </script>
+</body>
+</html>

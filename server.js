@@ -404,6 +404,7 @@ app.get('/profile', gate, sendPage('profile.html'));
 app.get('/form', gate, sendPage('form.html'));
 app.get('/leaderboard', gate, sendPage('leaderboard.html'));
 app.get('/diterapkan', gate, sendPage('diterapkan.html'));
+app.get('/progres', gate, sendPage('progres.html'));   // lacak status ide sendiri & tim
 
 // ------------------------------------------------------------
 //  Google OAuth (raw https)

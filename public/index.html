@@ -51,6 +51,7 @@
     document.getElementById('menu-slot').appendChild(attachMenu([
       { href: '/form', icon: '💡', label: 'Kirim Ide' },
       { href: '/leaderboard', icon: '🏆', label: 'Leaderboard' },
+      { href: '/progres', icon: '🔧', label: 'Progres Ide' },
       { href: '/diterapkan', icon: '🏅', label: 'Sudah Diterapkan' },
       { href: '/game', icon: '🎮', label: 'Kejar Antares' },
       { href: '/profile', icon: '👤', label: 'Profil Saya' },
@@ -90,9 +91,6 @@
       card.classList.add('flash');
       setTimeout(() => card.classList.remove('flash'), 1600);
     }
-    workingSlot.addEventListener('click', e => {
-      const c = e.target.closest('[data-goto]'); if (c) gotoIdea(+c.dataset.goto);
-    });
     featuredSlot.addEventListener('click', e => {
       const f = e.target.closest('[data-goto]'); if (f) gotoIdea(+f.dataset.goto);
     });
@@ -162,30 +160,21 @@
       }).join('') + `</div>`;
     }
 
-    // ---- Section "Lagi Dikerjain" (bukti ide bergerak) ----
+    // ---- Status bar: pintu masuk ke halaman Progres ----
     function renderWorking() {
-      const wip = ideas.filter(i => i.status === 'in_progress').sort((a, b) => b.ts - a.ts);
-      const doneRecent = ideas.filter(i => i.status === 'done').sort((a, b) => b.ts - a.ts);
-      if (!wip.length && !doneRecent.length) { workingSlot.innerHTML = ''; return; }
-      const item = (i, kind) => {
-        const last = (i.progress || []).slice(-1)[0];
-        const note = kind === 'done' && i.impact ? i.impact : (last ? last.text : '');
-        return `<div class="wip-card" data-goto="${i.id}" role="button" tabindex="0">
-          <div class="wip-top">${kind === 'done' ? '<span class="wip-b done">✅ Selesai</span>' : '<span class="wip-b">🔧 Dikerjakan</span>'}
-            ${i.pic ? `<span class="wip-pic">👤 ${esc(i.pic)}</span>` : ''}</div>
-          <div class="wip-txt">${esc(i.text)}</div>
-          ${note ? `<div class="wip-note">📌 ${esc(note)}</div>` : ''}
-        </div>`;
-      };
-      workingSlot.innerHTML = `
-        <section class="wip">
-          <div class="wip-h"><span>🔧 Lagi Dikerjain</span>
-            <span class="wip-count">${wip.length} berjalan${doneRecent.length ? ' · ' + doneRecent.length + ' selesai' : ''}</span></div>
-          <div class="wip-row">
-            ${wip.slice(0, 6).map(i => item(i, 'wip')).join('')}
-            ${doneRecent.slice(0, 4).map(i => item(i, 'done')).join('')}
-          </div>
-        </section>`;
+      const wip = ideas.filter(i => i.status === 'in_progress');
+      const done = ideas.filter(i => i.status === 'done');
+      const mine = me ? ideas.filter(i => i.memberId === me.id) : [];
+      const mineMoving = mine.filter(i => i.status === 'in_progress' || i.status === 'done');
+      if (!wip.length && !done.length) { workingSlot.innerHTML = ''; return; }
+      const personal = mineMoving.length
+        ? `<b>Idemu lagi jalan</b><span>${mineMoving.length} ide kamu sedang dikerjakan atau sudah selesai</span>`
+        : `<b>${wip.length} ide lagi dikerjain</b><span>${done.length ? done.length + ' sudah selesai · ' : ''}lihat progres &amp; update tim</span>`;
+      workingSlot.innerHTML = `<a class="statusbar${mineMoving.length ? ' me' : ''}" href="/progres">
+          <span class="sb-ico">${mineMoving.length ? '🎉' : '🔧'}</span>
+          <span class="sb-txt">${personal}</span>
+          <span class="sb-go" aria-hidden="true">→</span>
+        </a>`;
     }
 
     function cardHTML(idea) {
