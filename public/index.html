@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#FF6B2B">
 <link rel="icon" href="/assets/antarestar-logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="/assets/app.css?v=18">
+<link rel="stylesheet" href="/assets/app.css?v=19">
 </head>
 <body>
   <div class="app">
@@ -25,6 +25,7 @@
 
     <div id="eotm-banner-slot"></div>
     <div id="featured-slot"></div>
+    <div id="working-slot"></div>
 
     <main class="feed" id="feed">
       <div class="empty">Memuat ide…</div>
@@ -42,6 +43,7 @@
     const CHAT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 9 9 0 0 1-3.8-.8L3 21l1.3-5a8.2 8.2 0 0 1-.8-3.5A8.4 8.4 0 0 1 12 4a8.4 8.4 0 0 1 9 7.5z" stroke-linejoin="round" stroke-linecap="round"/></svg>';
     const feedEl = document.getElementById('feed');
     const featuredSlot = document.getElementById('featured-slot');
+    const workingSlot = document.getElementById('working-slot');
     let ideas = [];
     let me = null;
 
@@ -88,6 +90,9 @@
       card.classList.add('flash');
       setTimeout(() => card.classList.remove('flash'), 1600);
     }
+    workingSlot.addEventListener('click', e => {
+      const c = e.target.closest('[data-goto]'); if (c) gotoIdea(+c.dataset.goto);
+    });
     featuredSlot.addEventListener('click', e => {
       const f = e.target.closest('[data-goto]'); if (f) gotoIdea(+f.dataset.goto);
     });
@@ -144,6 +149,45 @@
       const imp = idea.impact ? `<div class="pgi done">🏁 <b>Hasil:</b> ${esc(idea.impact)}</div>` : '';
       return `<div class="prog-block"><div class="prog-h">📌 Update Resmi</div>${notes}${imp}</div>`;
     }
+    // ---- Tracker 3 tahap: Diterima → Dikerjakan → Selesai ----
+    function trackerHTML(idea) {
+      const st = idea.status || 'pending';
+      if (st === 'pending') return '';
+      const step = st === 'done' ? 3 : 2;
+      const names = ['Diterima', 'Dikerjakan', 'Selesai'];
+      return `<div class="trk">` + names.map((n, i) => {
+        const on = (i + 1) <= step;
+        return `<div class="trk-s${on ? ' on' : ''}"><span class="trk-dot">${on ? '✓' : i + 1}</span><span class="trk-l">${n}</span></div>` +
+               (i < 2 ? `<div class="trk-bar${(i + 1) < step ? ' on' : ''}"></div>` : '');
+      }).join('') + `</div>`;
+    }
+
+    // ---- Section "Lagi Dikerjain" (bukti ide bergerak) ----
+    function renderWorking() {
+      const wip = ideas.filter(i => i.status === 'in_progress').sort((a, b) => b.ts - a.ts);
+      const doneRecent = ideas.filter(i => i.status === 'done').sort((a, b) => b.ts - a.ts);
+      if (!wip.length && !doneRecent.length) { workingSlot.innerHTML = ''; return; }
+      const item = (i, kind) => {
+        const last = (i.progress || []).slice(-1)[0];
+        const note = kind === 'done' && i.impact ? i.impact : (last ? last.text : '');
+        return `<div class="wip-card" data-goto="${i.id}" role="button" tabindex="0">
+          <div class="wip-top">${kind === 'done' ? '<span class="wip-b done">✅ Selesai</span>' : '<span class="wip-b">🔧 Dikerjakan</span>'}
+            ${i.pic ? `<span class="wip-pic">👤 ${esc(i.pic)}</span>` : ''}</div>
+          <div class="wip-txt">${esc(i.text)}</div>
+          ${note ? `<div class="wip-note">📌 ${esc(note)}</div>` : ''}
+        </div>`;
+      };
+      workingSlot.innerHTML = `
+        <section class="wip">
+          <div class="wip-h"><span>🔧 Lagi Dikerjain</span>
+            <span class="wip-count">${wip.length} berjalan${doneRecent.length ? ' · ' + doneRecent.length + ' selesai' : ''}</span></div>
+          <div class="wip-row">
+            ${wip.slice(0, 6).map(i => item(i, 'wip')).join('')}
+            ${doneRecent.slice(0, 4).map(i => item(i, 'done')).join('')}
+          </div>
+        </section>`;
+    }
+
     function cardHTML(idea) {
       const liked = hasLiked(idea.id);
       const isTrophy = idea.id === trophyId();
@@ -173,6 +217,7 @@
           <div class="card-meta">
             <div style="margin-bottom:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${catBadge(idea.category)}${ownTag(idea)}</div>
             <p class="card-text"><b>${esc(idea.name)}</b> ${esc(idea.text)}</p>
+            ${trackerHTML(idea)}
             ${picLine(idea)}
             ${progressBlock(idea)}
             ${cnt ? `<button class="see-cmt" data-toggle="${idea.id}">Lihat ${cnt} komentar</button>` : ''}
@@ -184,9 +229,10 @@
     let shown = 0;
     const PAGE = 50;
     function render() {
-      if (!ideas.length) { featuredSlot.innerHTML = ''; feedEl.innerHTML = '<div class="empty">Belum ada ide. Jadilah yang pertama! 💡</div>'; shown = 0; return; }
+      if (!ideas.length) { featuredSlot.innerHTML = ''; workingSlot.innerHTML = ''; feedEl.innerHTML = '<div class="empty">Belum ada ide. Jadilah yang pertama! 💡</div>'; shown = 0; return; }
       ideas.sort((a, b) => b.ts - a.ts);
       renderFeatured();
+      renderWorking();
       // pertahankan jumlah yg sudah tampil (biar SSE re-render nggak reset scroll); minimal 1 halaman
       if (typeof IntersectionObserver === 'undefined') shown = ideas.length; // browser jadul: tampil semua
       else shown = shown === 0 ? Math.min(PAGE, ideas.length) : Math.min(shown, ideas.length);

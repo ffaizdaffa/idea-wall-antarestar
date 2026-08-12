@@ -417,3 +417,37 @@ a { color: inherit; text-decoration: none; }
   padding:4px 10px; border-radius:999px; letter-spacing:0.02em; }
 .catb.cat-ide   { background:rgba(255,107,43,0.12); color:#C44A0F; }
 .catb.cat-sport { background:rgba(26,107,255,0.12); color:#0040CC; }
+
+/* ---- Section "Lagi Dikerjain" (bukti ide bergerak) ---- */
+.wip { margin: 0 0 16px; }
+.wip-h { display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px; padding: 0 2px; }
+.wip-h > span:first-child { font-weight: 900; font-size: 15px; color: var(--text); }
+.wip-count { font-size: 12px; font-weight: 700; color: var(--muted); }
+.wip-row { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.wip-row::-webkit-scrollbar { height: 5px; }
+.wip-row::-webkit-scrollbar-thumb { background: rgba(16,18,24,0.15); border-radius: 3px; }
+.wip-card { flex: 0 0 78%; max-width: 300px; scroll-snap-align: start; cursor: pointer;
+  background: var(--card); border: 1px solid rgba(26,107,255,0.28); border-left: 4px solid #1A6BFF;
+  border-radius: 14px; padding: 12px 14px; box-shadow: 0 4px 14px rgba(16,18,24,0.07); transition: transform .12s; }
+.wip-card:hover { transform: translateY(-2px); }
+.wip-top { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; flex-wrap: wrap; }
+.wip-b { font-size: 10.5px; font-weight: 900; letter-spacing: .04em; color: #0B3C91; background: rgba(26,107,255,0.13); border-radius: 999px; padding: 3px 9px; }
+.wip-b.done { color: #15663a; background: rgba(31,168,91,0.14); }
+.wip-pic { font-size: 11px; font-weight: 700; color: var(--muted); }
+.wip-txt { font-size: 13.5px; font-weight: 700; color: var(--text); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.wip-note { margin-top: 7px; font-size: 12px; font-weight: 600; color: var(--muted);
+  border-top: 1px dashed rgba(16,18,24,0.12); padding-top: 6px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (min-width: 720px) { .wip-card { flex: 0 0 300px; } }
+
+/* ---- Tracker 3 tahap di kartu ide ---- */
+.trk { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.trk-s { display: flex; align-items: center; gap: 5px; }
+.trk-dot { width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 10.5px; font-weight: 900; color: var(--faint); background: var(--bg); border: 1.5px solid rgba(16,18,24,0.14); flex: none; }
+.trk-l { font-size: 10.5px; font-weight: 800; color: var(--faint); white-space: nowrap; }
+.trk-s.on .trk-dot { color: #fff; background: #1FA85B; border-color: #1FA85B; }
+.trk-s.on .trk-l { color: #15663a; }
+.trk-bar { flex: 1; height: 2.5px; border-radius: 2px; background: rgba(16,18,24,0.12); min-width: 10px; }
+.trk-bar.on { background: #1FA85B; }
