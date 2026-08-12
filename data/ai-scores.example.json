@@ -1,0 +1,10 @@
+{
+  "scoredAt": "2026-01-01T00:00:00.000Z",
+  "scores": {
+    "1": {"ib":4,"it":3,"ef":2,"co":1,"ri":3,"th":"Efisiensi Proses","rs":"Bank musik hemat waktu cari backsound tiap proyek"},
+    "2": {"ib":4,"it":2,"ef":2,"co":1,"ri":2,"th":"Efisiensi Proses","rs":"Template caption hemat 3 jam/minggu tim sosmed"},
+    "3": {"ib":3,"it":2,"ef":2,"co":1,"ri":3,"th":"Alat & Software","rs":"Folder aset terpusat kurangi rework & file nyasar"},
+    "4": {"ib":3,"it":2,"ef":1,"co":1,"ri":2,"th":"Efisiensi Proses","rs":"Checklist serah-terima cegah file final ketinggalan"},
+    "5": {"ib":2,"it":5,"ef":1,"co":1,"ri":2,"th":"Apresiasi Tim","rs":"Rak gudang bikin kerja rapi & nyaman, murah"}
+  }
+}

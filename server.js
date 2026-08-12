@@ -802,6 +802,47 @@ app.delete('/api/idea/:id', requireAdmin, (req, res) => {
 });
 
 // ------------------------------------------------------------
+//  AI Prioritization scores (impact/effort/cost/risk per idea)
+//  Scores are produced by an AI pass and stored in data/ai-scores.json:
+//    { "scores": { "<ideaId>": {ib,it,ef,co,ri,th,rs}, ... } }
+//  ib=impact bisnis, it=impact tim, ef=effort, co=biaya, ri=risiko-jika-diabaikan (1..5)
+// ------------------------------------------------------------
+const AI_SCORES_FILE = path.join(DATA_DIR, 'ai-scores.json');
+let aiScoresData = null;
+function loadAiScores() {
+  if (aiScoresData) return aiScoresData;
+  try { aiScoresData = fs.existsSync(AI_SCORES_FILE) ? JSON.parse(fs.readFileSync(AI_SCORES_FILE, 'utf8')) : null; }
+  catch (e) { aiScoresData = null; }
+  if (!aiScoresData || typeof aiScoresData !== 'object') aiScoresData = { scores: {}, scoredAt: null };
+  if (!aiScoresData.scores) aiScoresData.scores = {};
+  return aiScoresData;
+}
+function saveAiScores() { try { fs.writeFileSync(AI_SCORES_FILE, JSON.stringify(aiScoresData)); } catch (e) { /* ignore */ } }
+
+app.get('/api/admin/ai-scores', requireAdmin, (_req, res) => {
+  const d = loadAiScores();
+  res.json({ scores: d.scores || {}, scoredAt: d.scoredAt || null });
+});
+
+// admin manual override of one idea's AI scores
+app.put('/api/admin/ai-scores/:id', requireAdmin, (req, res) => {
+  const d = loadAiScores();
+  const id = String(parseInt(req.params.id, 10));
+  const b = req.body || {};
+  const cur = d.scores[id] || {};
+  const clamp = (v, def) => { const n = parseInt(v, 10); return (n >= 1 && n <= 5) ? n : (cur[def[0]] != null ? cur[def[0]] : def[1]); };
+  d.scores[id] = {
+    ib: clamp(b.ib, ['ib', 3]), it: clamp(b.it, ['it', 3]), ef: clamp(b.ef, ['ef', 3]),
+    co: clamp(b.co, ['co', 3]), ri: clamp(b.ri, ['ri', 2]),
+    th: (typeof b.th === 'string' && b.th.trim()) ? b.th.trim().slice(0, 40) : (cur.th || 'Lainnya'),
+    rs: (typeof b.rs === 'string') ? b.rs.slice(0, 160) : (cur.rs || ''),
+    edited: true,
+  };
+  saveAiScores();
+  res.json({ ok: true, score: d.scores[id] });
+});
+
+// ------------------------------------------------------------
 //  Notifications API (member)
 // ------------------------------------------------------------
 app.get('/api/notifications', (req, res) => {

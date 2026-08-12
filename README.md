@@ -74,10 +74,19 @@ An auto-scrolling, always-on view for office screens: the newest ideas scroll by
 A cinematic HTML5-Canvas flappy game (day/night cycle, procedural sound, its own leaderboard) baked in at `/game` as a light re-engagement hook. Reskinnable to your brand.
 
 ### ⚙️ Admin panel
-Three tabs behind a password:
+Four tabs behind a password:
 - **Dashboard** — analytics: category & status breakdowns, trend charts, top contributors, word cloud, EOTM overview.
-- **Manage ideas** — change status, delete, comment, with filter + search.
+- **🎯 AI Prioritization** — see below.
+- **Manage ideas** — change status, assign a PIC + due date, log progress, comment, delete; filter, search, and sort (including by AI priority). Each card shows its AI score badges.
 - **EOTM** — open/close/reset voting rounds and pick the mode.
+
+### 🎯 AI Prioritization dashboard
+Turns a wall of raw ideas into a decision tool for HR/leadership. Each idea is scored (an AI pass writes `data/ai-scores.json`) on five 1–5 axes — **business impact, team impact, effort, cost, and risk-if-ignored** — plus a theme and a one-line rationale. The dashboard then renders:
+- an **Impact × Effort matrix** (Quick Win / Big Project / Fill-in / Avoid quadrants), with every idea plotted;
+- lens lists: **Do First** (priority = (impact + risk) ÷ effort), **Highest Business Impact**, **Makes the Team Proud** (low-cost morale wins), and **Risk if Ignored**;
+- **top themes**, and a **searchable/filterable/sortable table of every scored idea** — click any idea to jump straight to Manage.
+
+Scores are read from `data/ai-scores.json` (shape in `data/ai-scores.example.json`). Generate them however you like: a batch AI pass over `GET /api/ideas`, or wire an LLM to score each idea on submit and `PUT /api/admin/ai-scores/:id`.
 
 ### 🔔 In-app notifications
 A bell with an unread badge pings a member when someone likes or comments their idea, or when a voting round opens.

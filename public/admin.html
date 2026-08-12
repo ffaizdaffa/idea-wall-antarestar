@@ -248,6 +248,63 @@
     transition:opacity .25s,transform .25s; pointer-events:none; }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   .toast.err{ background:var(--red); }
+  /* ---- Prioritas AI ---- */
+  .prio-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+  .prio-kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:16px; }
+  .prio-kpi{ background:var(--card); border:1px solid var(--border); border-left:3px solid var(--c); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); }
+  .prio-kpi .v{ font-size:22px; font-weight:900; color:var(--c); }
+  .prio-kpi .l{ font-size:11.5px; font-weight:700; color:var(--muted); }
+  .prio-card-h{ font-weight:800; font-size:13.5px; margin-bottom:10px; }
+  .prio-card-h span{ font-weight:600; font-size:11px; color:var(--faint); }
+  .prio-matrix-card{ background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:16px; margin-bottom:16px; }
+  .axis-y{ writing-mode:vertical-rl; transform:rotate(180deg); font-size:10px; font-weight:700; color:var(--faint); text-align:center; padding:4px 0; }
+  .axis-x{ text-align:center; font-size:10px; font-weight:700; color:var(--faint); margin-top:5px; }
+  .prio-matrix{ position:relative; height:320px; border-left:1.5px solid var(--border); border-bottom:1.5px solid var(--border); }
+  .prio-matrix .q{ position:absolute; font-size:10px; font-weight:800; padding:6px 8px; }
+  .q-tl{ left:0; top:0; color:var(--green); } .q-tr{ right:0; top:0; color:var(--blue); }
+  .q-bl{ left:0; bottom:0; color:var(--faint); } .q-br{ right:0; bottom:0; color:var(--red); }
+  .prio-matrix::before{ content:''; position:absolute; left:0; top:0; width:50%; height:50%; background:rgba(31,168,91,0.07); }
+  .prio-matrix::after{ content:''; position:absolute; right:0; bottom:0; width:50%; height:50%; background:rgba(229,72,77,0.06); }
+  .prio-bub{ position:absolute; border-radius:50%; cursor:pointer; transition:transform .12s; box-shadow:0 2px 5px rgba(0,0,0,0.18); }
+  .prio-bub:hover{ transform:scale(1.25); z-index:5; }
+  .prio-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+  .prio-lens{ background:var(--card); border:1px solid var(--border); border-top:3px solid var(--c); border-radius:14px; box-shadow:var(--shadow); padding:14px 16px; }
+  .prio-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+  .prio-row:last-child{ border-bottom:none; }
+  .prio-row:hover .prio-t{ color:var(--accent); }
+  .prio-t{ font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .prio-rs{ font-size:11.5px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .prio-score{ font-size:17px; font-weight:900; flex:none; }
+  .ai-b{ flex:none; font-size:11px; font-weight:800; border:1px solid; border-radius:999px; padding:3px 9px; white-space:nowrap; }
+  .prio-themes{ background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:14px 16px; }
+  .th-row{ display:flex; align-items:center; gap:8px; font-size:12.5px; margin:7px 0; }
+  .th-l{ width:120px; font-weight:700; }
+  .th-bar{ flex:1; height:9px; background:var(--chip); border-radius:5px; overflow:hidden; }
+  .th-bar>div{ height:9px; background:linear-gradient(90deg,var(--accent),var(--accent-soft)); border-radius:5px; }
+  .prio-explain{ background:var(--card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:12px; padding:12px 16px; margin-bottom:16px; font-size:13px; line-height:1.6; color:var(--text); box-shadow:var(--shadow); }
+  .prio-legend{ display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
+  .prio-legend span{ font-size:11.5px; color:var(--muted); font-weight:600; display:inline-flex; align-items:center; gap:5px; }
+  .prio-legend i{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .prio-table-card{ background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:14px 16px; margin-bottom:16px; }
+  .prio-controls{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .prio-sel{ border:1.5px solid var(--border); background:var(--card); color:var(--text); font-family:inherit; font-weight:700; font-size:12.5px; padding:8px 12px; border-radius:10px; cursor:pointer; }
+  .prio-table-wrap{ max-height:460px; overflow-y:auto; border:1px solid var(--border); border-radius:10px; }
+  .prio-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .prio-table thead th{ position:sticky; top:0; background:var(--chip); text-align:left; font-weight:800; font-size:11px; color:var(--muted); padding:9px 10px; z-index:1; }
+  .prio-table td{ padding:9px 10px; border-top:1px solid var(--border); vertical-align:top; }
+  .prio-table tbody tr{ cursor:pointer; }
+  .prio-table tbody tr:hover{ background:var(--chip); }
+  .prio-table .rk{ font-weight:800; color:var(--muted); text-align:center; }
+  .prio-table .txt>div:first-child{ font-weight:700; color:var(--text); }
+  .prio-table .rs{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .prio-table .ctr{ text-align:center; font-weight:700; }
+  .prio-table .sc{ font-weight:900; color:var(--accent); font-size:14px; }
+  .qtag{ display:inline-block; font-size:11px; font-weight:700; color:var(--muted); background:var(--chip); border:1px solid var(--border); border-radius:999px; padding:2px 8px; white-space:nowrap; }
+  /* AI badges inside Kelola Ide cards */
+  .idea-ai{ display:flex; flex-wrap:wrap; gap:5px; margin:8px 0 2px; align-items:center; }
+  .idea-ai .aiscore{ font-weight:900; font-size:12px; color:#fff; background:var(--accent); border-radius:999px; padding:3px 9px; }
+  .idea-ai .aitag{ font-size:11px; font-weight:700; color:var(--muted); background:var(--chip); border-radius:999px; padding:3px 8px; }
+  @media(max-width:720px){ .prio-grid{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -316,10 +373,12 @@
         <div class="wrap">
           <div class="tabs">
             <button class="tab on" data-tab="dash">📊 Dashboard</button>
+            <button class="tab" data-tab="prio">🎯 Prioritas AI</button>
             <button class="tab" data-tab="list">📝 Kelola Ide</button>
             <button class="tab" data-tab="eotm">⭐ EOTM</button>
           </div>
           <div id="view-dash"></div>
+          <div id="view-prio" style="display:none;"></div>
           <div id="view-eotm" style="display:none;"></div>
           <div id="view-list" style="display:none;">
             <div class="stats" id="stats"></div>
@@ -348,6 +407,7 @@
                   <div class="fp-lbl">Urutkan</div>
                   <div class="fp-opts" id="f-sort">
                     <button class="fp-opt on" data-v="new">🕒 Terbaru</button>
+                    <button class="fp-opt" data-v="prio">🎯 Prioritas AI</button>
                     <button class="fp-opt" data-v="like">❤️ Paling Disukai</button>
                     <button class="fp-opt" data-v="cmt">💬 Paling Rame</button>
                   </div>
@@ -364,9 +424,11 @@
         const tab = t.dataset.tab;
         document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b === t));
         document.getElementById('view-dash').style.display = tab === 'dash' ? '' : 'none';
+        document.getElementById('view-prio').style.display = tab === 'prio' ? '' : 'none';
         document.getElementById('view-list').style.display = tab === 'list' ? '' : 'none';
         document.getElementById('view-eotm').style.display = tab === 'eotm' ? '' : 'none';
         if (tab === 'eotm') renderEotmAdmin();
+        if (tab === 'prio') renderPriority();
       });
       bindEotm();
       bindList();
@@ -603,6 +665,23 @@
         ${idea.impact ? `<div class="mg-impact">🏁 Hasil: ${esc(idea.impact)}</div>` : ''}
       </div>`;
     }
+    function aiBadgeHTML(idea) {
+      const s = aiScores && aiScores[String(idea.id)];
+      if (!s) return '';
+      const tags = [];
+      if (isQuickWin(s)) tags.push('🟢 Quick Win');
+      if (isPride(s)) tags.push('💚 Bikin bangga');
+      if (s.ri >= 4) tags.push('⚠️ Risiko tinggi');
+      return `<div class="idea-ai" title="${esc(s.rs||'')}">
+        <span class="aiscore" title="Skor prioritas AI (impact+risiko ÷ effort)">🎯 ${prio10(s).toFixed(1)}</span>
+        <span class="aitag">💼 bisnis ${s.ib}/5</span>
+        <span class="aitag">👥 tim ${s.it}/5</span>
+        <span class="aitag">🔧 effort ${s.ef}/5</span>
+        <span class="aitag">💰 biaya ${s.co}/5</span>
+        <span class="aitag">⚠️ risiko ${s.ri}/5</span>
+        <span class="aitag">🏷️ ${esc(s.th||'')}</span>
+        ${tags.map(t => `<span class="aitag">${t}</span>`).join('')}</div>`;
+    }
     function ideaHTML(idea) {
       const photo = idea.photo ? `<img class="idea-photo" src="${esc(idea.photo)}" data-photo="${esc(idea.photo)}" alt="Foto ide">` : '';
       return `<div class="idea" data-id="${idea.id}">
@@ -612,6 +691,7 @@
             <span class="idea-num">#${pad4(idea.id)}</span></div>
           <p class="idea-text">${esc(idea.text)}</p>
           ${photo}
+          ${aiBadgeHTML(idea)}
           <div class="idea-badges" data-badges="${idea.id}">${picBadge(idea)}</div>
           <div class="idea-foot">
             ${statusToggle(idea)}
@@ -637,6 +717,7 @@
       }
       if (filt.sort === 'like') r.sort((a, b) => (b.likes || 0) - (a.likes || 0));
       else if (filt.sort === 'cmt') r.sort((a, b) => (b.comments || []).length - (a.comments || []).length);
+      else if (filt.sort === 'prio') r.sort((a, b) => prioOf(aiScores && aiScores[String(b.id)]) - prioOf(aiScores && aiScores[String(a.id)]));
       else r.sort((a, b) => b.ts - a.ts);
       return r;
     }
@@ -875,11 +956,211 @@
       });
     }
 
+    // ---------- Prioritas AI ----------
+    let aiScores = null, aiScoredAt = null;
+    const THEME_COLORS = {}; // consistent-ish colors per theme (assigned on render)
+    function prioOf(s){ return s ? ((s.ib + s.it + s.ri) / s.ef) : 0; }        // higher = do first
+    function prio10(s){ return s ? Math.min(10, Math.round(prioOf(s) / 1.5 * 10) / 10) : 0; }
+    function impOf(s){ return (s.ib + s.it) / 2; }
+    function quadrant(s){
+      const imp = impOf(s);
+      if (imp >= 3 && s.ef <= 2.5) return { k:'qw',   l:'🟢 Kerjain Duluan', c:'var(--green)' };
+      if (imp >= 3)               return { k:'big',  l:'🔵 Proyek Besar',   c:'var(--blue)'  };
+      if (s.ef <= 2.5)            return { k:'fill', l:'⚪ Sambilan',        c:'var(--faint)' };
+      return { k:'avoid', l:'🔴 Hindari', c:'var(--red)' };
+    }
+    function isQuickWin(s){ return s && quadrant(s).k === 'qw'; }
+    function isPride(s){ return s && s.it >= 4 && s.co <= 1; }
+
+    function renderPriority() {
+      const view = document.getElementById('view-prio');
+      if (!aiScores) {
+        view.innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:var(--muted);">Memuat skor AI…</div>';
+        fetch('/api/admin/ai-scores').then(r => r.json()).then(d => {
+          aiScores = d.scores || {}; aiScoredAt = d.scoredAt || null; renderPriority();
+        }).catch(() => { view.innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:var(--muted);">Gagal memuat skor AI.</div>'; });
+        return;
+      }
+      // join ideas with scores
+      const scored = ideas.map(i => ({ i, s: aiScores[String(i.id)] })).filter(x => x.s);
+      const total = scored.length;
+      if (!total) {
+        view.innerHTML = '<div class="empty" style="padding:44px;text-align:center;color:var(--muted);">Belum ada ide yang dinilai AI.<br><span style="font-size:13px;">Jalankan proses AI-scoring dulu (lihat README).</span></div>';
+        return;
+      }
+      const quickWins = scored.filter(x => isQuickWin(x.s));
+      const bizImpact = scored.filter(x => x.s.ib >= 4);
+      const prideList = scored.filter(x => isPride(x.s));
+      const unscored = ideas.filter(i => (i.category === 'ide_perbaikan') && !aiScores[String(i.id)]).length;
+
+      const byPrio = scored.slice().sort((a,b) => prioOf(b.s) - prioOf(a.s));
+      const byBiz  = scored.slice().sort((a,b) => b.s.ib - a.s.ib || prioOf(b.s) - prioOf(a.s));
+      const byPride= prideList.slice().sort((a,b) => b.s.it - a.s.it || a.s.co - b.s.co);
+      const byTeam = scored.slice().sort((a,b) => b.s.it - a.s.it);
+      const byRisk = scored.slice().sort((a,b) => b.s.ri - a.s.ri);
+
+      // themes
+      const themes = {};
+      scored.forEach(x => { const t = x.s.th || 'Lainnya'; themes[t] = (themes[t]||0)+1; });
+      const themeRows = Object.entries(themes).sort((a,b)=>b[1]-a[1]).slice(0,7);
+      const themeMax = themeRows.length ? themeRows[0][1] : 1;
+
+      const shortTxt = (t, n) => { t = String(t||''); return t.length > n ? t.slice(0, n-1) + '…' : t; };
+      const row = (x, right) => `<div class="prio-row" data-open="${x.i.id}">
+          <div style="flex:1;min-width:0;"><div class="prio-t">${esc(shortTxt(x.i.text, 60))}</div>
+          <div class="prio-rs">${esc(x.s.rs||'')}</div></div>${right}</div>`;
+
+      // matrix bubbles — ALL scored ideas, with deterministic jitter so ideas
+      // sharing the same 1-5 coords spread out instead of stacking on one point.
+      const jit = (id, seed) => { const h = Math.sin((id * 999 + seed) * 12.9898) * 43758.5453; return (h - Math.floor(h)) - 0.5; }; // -0.5..0.5
+      const bub = byPrio.map(x => {
+        const s = x.s; const imp = impOf(s); const q = quadrant(s);
+        const left = Math.max(1, Math.min(97, (s.ef - 0.5) / 5 * 100 + jit(x.i.id, 1) * 15)).toFixed(1);
+        const bottom = Math.max(1, Math.min(96, (imp - 0.5) / 5 * 100 + jit(x.i.id, 2) * 15)).toFixed(1);
+        const sz = 9 + s.it * 3;
+        const pride = isPride(s) ? 'border:1.5px dashed #fff;' : '';
+        return `<div class="prio-bub" data-open="${x.i.id}" title="${esc(shortTxt(x.i.text,70))}&#10;impact bisnis ${s.ib}/5 · tim ${s.it}/5 · effort ${s.ef}/5 · risiko ${s.ri}/5" style="left:${left}%;bottom:${bottom}%;width:${sz}px;height:${sz}px;margin:-${sz/2}px;background:${q.c};opacity:.82;${pride}"></div>`;
+      }).join('');
+
+      const badge = (label, val, color) => `<span class="ai-b" style="color:${color};border-color:${color}33;background:${color}14;">${label} ${val}</span>`;
+
+      view.innerHTML = `
+        <div class="prio-head">
+          <div><div class="section-h" style="margin:0;">🎯 Prioritas AI</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px;">${total} ide dinilai AI${aiScoredAt ? ' · '+new Date(aiScoredAt).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : ''} · penilaian dari analisa AI, bukan jumlah like</div>
+          </div>
+        </div>
+
+        <div class="prio-explain">
+          <b>Cara baca:</b> tiap ide dinilai AI 1–5 di <b>Impact</b> (bisnis+tim), <b>Effort</b>, <b>Biaya</b>, dan <b>Risiko kalau diabaikan</b>. <b>Skor Prioritas = (Impact + Risiko) ÷ Effort</b> — makin tinggi makin worth dikerjain duluan.
+          <div class="prio-legend">
+            <span><i style="background:var(--green);"></i> 🟢 Kerjain Duluan — impact tinggi, effort rendah</span>
+            <span><i style="background:var(--blue);"></i> 🔵 Proyek Besar — impact tinggi, effort besar</span>
+            <span><i style="background:var(--faint);"></i> ⚪ Sambilan — impact rendah, gampang</span>
+            <span><i style="background:var(--red);"></i> 🔴 Hindari — impact rendah, effort besar</span>
+          </div>
+          <div style="margin-top:6px;color:var(--muted);">Semua ${total} ide bisa kamu lihat & filter di tabel <b>“Semua Ide”</b> di bawah. Klik ide mana pun → langsung ke Kelola Ide.</div>
+        </div>
+
+        <div class="prio-kpis">
+          <div class="prio-kpi" style="--c:var(--green);"><div class="v">${quickWins.length}</div><div class="l">🟢 Quick Win</div></div>
+          <div class="prio-kpi" style="--c:var(--blue);"><div class="v">${bizImpact.length}</div><div class="l">💼 Impact bisnis</div></div>
+          <div class="prio-kpi" style="--c:var(--green);"><div class="v">${prideList.length}</div><div class="l">💚 Bikin bangga</div></div>
+          <div class="prio-kpi" style="--c:var(--red);"><div class="v">${byRisk.filter(x=>x.s.ri>=4).length}</div><div class="l">⚠️ Risiko tinggi</div></div>
+          <div class="prio-kpi" style="--c:var(--muted);"><div class="v">${unscored}</div><div class="l">⏳ Belum dinilai</div></div>
+        </div>
+
+        <div class="prio-matrix-card">
+          <div class="prio-card-h">Matriks Impact × Effort <span>skor AI · ukuran bola = dampak ke tim · putus-putus = bikin bangga</span></div>
+          <div style="display:flex;gap:10px;">
+            <div class="axis-y">IMPACT → TINGGI</div>
+            <div style="flex:1;">
+              <div class="prio-matrix">
+                <div class="q q-tl">🟢 KERJAIN DULUAN</div><div class="q q-tr">🔵 PROYEK BESAR</div>
+                <div class="q q-bl">⚪ SAMBILAN</div><div class="q q-br">🔴 HINDARI</div>
+                ${bub}
+              </div>
+              <div class="axis-x">EFFORT / BIAYA → TINGGI</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="prio-table-card">
+          <div class="prio-card-h">📋 Semua Ide <span>diurut prioritas · klik untuk kelola</span></div>
+          <div class="prio-controls">
+            <input id="prio-q" class="fp-search" style="margin:0;flex:1;min-width:160px;" type="text" placeholder="Cari ide…">
+            <select id="prio-quad" class="prio-sel"><option value="all">Semua kuadran</option><option value="qw">🟢 Kerjain Duluan</option><option value="big">🔵 Proyek Besar</option><option value="fill">⚪ Sambilan</option><option value="avoid">🔴 Hindari</option></select>
+            <select id="prio-theme" class="prio-sel"><option value="all">Semua tema</option>${themeRows.concat(Object.entries(themes).filter(([t])=>!themeRows.find(r=>r[0]===t))).map(([t])=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>
+            <select id="prio-sort" class="prio-sel"><option value="prio">Urut: Prioritas</option><option value="ib">Impact bisnis</option><option value="it">Impact tim</option><option value="ri">Risiko</option><option value="ef">Effort termudah</option></select>
+          </div>
+          <div class="prio-table-wrap"><table class="prio-table"><thead><tr>
+            <th style="width:34px;">#</th><th>Ide</th><th>Tema</th><th>Kuadran</th>
+            <th class="ctr" title="Impact bisnis">💼</th><th class="ctr" title="Impact tim">👥</th><th class="ctr" title="Effort">🔧</th><th class="ctr" title="Risiko diabaikan">⚠️</th><th class="ctr">Skor</th>
+          </tr></thead><tbody id="prio-tbody"></tbody></table></div>
+          <div id="prio-count" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
+        </div>
+
+        <div class="prio-grid">
+          <div class="prio-lens" style="--c:var(--green);">
+            <div class="prio-card-h">🎯 Kerjain Duluan <span>low effort · high impact</span></div>
+            ${byPrio.slice(0,6).map(x => row(x, `<span class="prio-score" style="color:var(--green);">${prio10(x.s).toFixed(1)}</span>`)).join('')}
+          </div>
+          <div class="prio-lens" style="--c:var(--blue);">
+            <div class="prio-card-h">💼 Impact Bisnis Tertinggi <span>langsung ke bisnis</span></div>
+            ${byBiz.slice(0,6).map(x => row(x, badge('bisnis', x.s.ib+'/5', 'var(--blue)'))).join('')}
+          </div>
+          <div class="prio-lens" style="--c:var(--green);">
+            <div class="prio-card-h">💚 Bikin Tim Bangga <span>biaya ≈0, dihargai walau sepele</span></div>
+            ${(byPride.length?byPride:byTeam).slice(0,6).map(x => row(x, badge('tim', x.s.it+'/5', 'var(--green)'))).join('')}
+          </div>
+          <div class="prio-lens" style="--c:var(--red);">
+            <div class="prio-card-h">⚠️ Risiko Kalau Diabaikan <span>rugi/masalah kalau dibiarkan</span></div>
+            ${byRisk.slice(0,6).map(x => row(x, badge('risiko', x.s.ri+'/5', 'var(--red)'))).join('')}
+          </div>
+        </div>
+
+        <div class="prio-themes">
+          <div class="prio-card-h">🏷️ Tema Teratas <span>ide paling banyak tentang apa</span></div>
+          ${themeRows.map(([t,n]) => `<div class="th-row"><span class="th-l">${esc(t)}</span><div class="th-bar"><div style="width:${Math.round(n/themeMax*100)}%;"></div></div><b>${n}</b></div>`).join('')}
+        </div>`;
+
+      // wire the full ranked table
+      prioScored = scored;
+      ['prio-q','prio-quad','prio-theme','prio-sort'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener(id === 'prio-q' ? 'input' : 'change', () => {
+          prioFilt = { q: document.getElementById('prio-q').value.trim().toLowerCase(),
+            quad: document.getElementById('prio-quad').value, theme: document.getElementById('prio-theme').value,
+            sort: document.getElementById('prio-sort').value };
+          renderPrioTable();
+        });
+      });
+      renderPrioTable();
+
+      // click a row/bubble → open that idea in Kelola Ide
+      view.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => openInList(parseInt(el.dataset.open, 10))));
+    }
+
+    let prioScored = [], prioFilt = { q:'', quad:'all', theme:'all', sort:'prio' };
+    function renderPrioTable() {
+      const tb = document.getElementById('prio-tbody'); if (!tb) return;
+      let rows = prioScored.slice();
+      if (prioFilt.q) rows = rows.filter(x => (x.i.text||'').toLowerCase().includes(prioFilt.q));
+      if (prioFilt.quad !== 'all') rows = rows.filter(x => quadrant(x.s).k === prioFilt.quad);
+      if (prioFilt.theme !== 'all') rows = rows.filter(x => (x.s.th||'Lainnya') === prioFilt.theme);
+      const sk = prioFilt.sort;
+      rows.sort((a,b) => sk === 'prio' ? prioOf(b.s)-prioOf(a.s) : sk === 'ef' ? a.s.ef-b.s.ef || prioOf(b.s)-prioOf(a.s) : (b.s[sk]-a.s[sk]) || prioOf(b.s)-prioOf(a.s));
+      const cut = (t,n) => { t = String(t||''); return t.length > n ? t.slice(0,n-1)+'…' : t; };
+      tb.innerHTML = rows.map((x,idx) => {
+        const s = x.s, q = quadrant(s);
+        return `<tr data-open="${x.i.id}">
+          <td class="rk">${idx+1}</td>
+          <td class="txt"><div>${esc(cut(x.i.text,70))}</div><div class="rs">${esc(s.rs||'')}</div></td>
+          <td><span class="qtag">${esc(s.th||'')}</span></td>
+          <td><span class="qtag" style="color:${q.c};border-color:${q.c}44;">${q.l}</span></td>
+          <td class="ctr">${s.ib}</td><td class="ctr">${s.it}</td><td class="ctr">${s.ef}</td>
+          <td class="ctr" style="color:${s.ri>=4?'var(--red)':'inherit'};font-weight:${s.ri>=4?800:600};">${s.ri}</td>
+          <td class="ctr sc">${prio10(s).toFixed(1)}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">Tidak ada ide cocok filter.</td></tr>';
+      const cnt = document.getElementById('prio-count'); if (cnt) cnt.textContent = 'Menampilkan ' + rows.length + ' dari ' + prioScored.length + ' ide';
+      tb.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => openInList(parseInt(el.dataset.open, 10))));
+    }
+
+    function openInList(id) {
+      document.querySelector('[data-tab="list"]').click();
+      const search = document.getElementById('f-search');
+      const idea = find(id);
+      if (search && idea) { search.value = (idea.text||'').slice(0, 24); filt.q = search.value.trim(); renderList(); }
+      setTimeout(() => { const c = document.querySelector('.idea[data-id="'+id+'"]'); if (c) { c.scrollIntoView({behavior:'smooth',block:'center'}); c.style.outline = '2px solid var(--accent)'; setTimeout(()=>c.style.outline='',1600); } }, 120);
+    }
+
     function boot() {
       renderShell();
       fetch('/api/ideas').then(r => r.json()).then(d => {
         ideas = d.ideas || []; renderList(); connectSSE();
         fetch('/api/eotm').then(r => r.json()).then(s => { dashEotm = s; renderDashboard(); }).catch(() => {});
+        fetch('/api/admin/ai-scores').then(r => r.json()).then(d => { aiScores = d.scores || {}; aiScoredAt = d.scoredAt || null; renderList(); }).catch(() => {});
       }).catch(() => { document.getElementById('list').innerHTML = '<div class="empty">Gagal memuat ide.</div>'; });
     }
 
