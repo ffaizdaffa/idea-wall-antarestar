@@ -281,6 +281,12 @@
   .th-l{ width:120px; font-weight:700; }
   .th-bar{ flex:1; height:9px; background:var(--chip); border-radius:5px; overflow:hidden; }
   .th-bar>div{ height:9px; background:linear-gradient(90deg,var(--accent),var(--accent-soft)); border-radius:5px; }
+  .grp-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .grp-chip{ border:1.5px solid var(--border); background:var(--card); color:var(--muted); font-family:inherit;
+    font-weight:800; font-size:13px; padding:9px 16px; border-radius:999px; box-shadow:var(--shadow); }
+  .grp-chip b{ color:var(--faint); margin-left:4px; }
+  .grp-chip.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .grp-chip.on b{ color:#fff; opacity:.85; }
   .prio-explain{ background:var(--card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:12px; padding:12px 16px; margin-bottom:16px; font-size:13px; line-height:1.6; color:var(--text); box-shadow:var(--shadow); }
   .prio-legend{ display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
   .prio-legend span{ font-size:11.5px; color:var(--muted); font-weight:600; display:inline-flex; align-items:center; gap:5px; }
@@ -971,6 +977,16 @@
     }
     function isQuickWin(s){ return s && quadrant(s).k === 'qw'; }
     function isPride(s){ return s && s.it >= 4 && s.co <= 1; }
+    function isLowCostHighImpact(s){ return s && s.co <= 2 && impOf(s) >= 3; }
+    function isLowEffortHighImpact(s){ return s && s.ef <= 2 && impOf(s) >= 3; }
+    // grup ide: 🏢 perusahaan (internal) · 📦 produk (usulan produk baru) · 🏆 sports day
+    function groupOf(idea, s){
+      if ((idea.category || '') === 'sports_day') return 'sports';
+      if (s && s.th === 'Produk Baru') return 'produk';
+      return 'perusahaan';
+    }
+    const GROUPS = { perusahaan:'🏢 Perbaikan Perusahaan', produk:'📦 Feedback Produk', sports:'🏆 Sports Day' };
+    let activeGroup = 'perusahaan';
 
     function renderPriority() {
       const view = document.getElementById('view-prio');
@@ -982,22 +998,35 @@
         return;
       }
       // join ideas with scores
-      const scored = ideas.map(i => ({ i, s: aiScores[String(i.id)] })).filter(x => x.s);
-      const total = scored.length;
-      if (!total) {
+      const allScored = ideas.map(i => ({ i, s: aiScores[String(i.id)] })).filter(x => x.s);
+      if (!allScored.length) {
         view.innerHTML = '<div class="empty" style="padding:44px;text-align:center;color:var(--muted);">Belum ada ide yang dinilai AI.<br><span style="font-size:13px;">Jalankan proses AI-scoring dulu (lihat README).</span></div>';
         return;
       }
+      // hitung jumlah per grup + filter ke grup aktif
+      const gCount = { perusahaan:0, produk:0, sports:0 };
+      allScored.forEach(x => { gCount[groupOf(x.i, x.s)]++; });
+      const groupChips = Object.keys(GROUPS).map(g =>
+        `<button class="grp-chip${g===activeGroup?' on':''}" data-grp="${g}">${GROUPS[g]} <b>${gCount[g]}</b></button>`).join('');
+      const scored = allScored.filter(x => groupOf(x.i, x.s) === activeGroup);
+      const total = scored.length;
       const quickWins = scored.filter(x => isQuickWin(x.s));
       const bizImpact = scored.filter(x => x.s.ib >= 4);
       const prideList = scored.filter(x => isPride(x.s));
-      const unscored = ideas.filter(i => (i.category === 'ide_perbaikan') && !aiScores[String(i.id)]).length;
+      const unscored = ideas.filter(i => !aiScores[String(i.id)] &&
+        (activeGroup === 'sports' ? i.category === 'sports_day' : i.category !== 'sports_day')).length;
+      // istilah menyesuaikan grup (sports day pakai bahasa acara, bukan bisnis)
+      const L = activeGroup === 'sports'
+        ? { imp:'Kebersamaan', ib:'kebersamaan', it:'keseruan', ef:'kesulitan', ibT:'🤝 Paling Bikin Kompak', itT:'🎉 Paling Seru & Rame', riT:'⚠️ Paling Ditunggu Tim' }
+        : { imp:'Impact', ib:'bisnis', it:'tim', ef:'effort', ibT:'💼 Impact Bisnis Tertinggi', itT:'💚 Bikin Tim Bangga', riT:'⚠️ Risiko Kalau Diabaikan' };
 
       const byPrio = scored.slice().sort((a,b) => prioOf(b.s) - prioOf(a.s));
       const byBiz  = scored.slice().sort((a,b) => b.s.ib - a.s.ib || prioOf(b.s) - prioOf(a.s));
       const byPride= prideList.slice().sort((a,b) => b.s.it - a.s.it || a.s.co - b.s.co);
       const byTeam = scored.slice().sort((a,b) => b.s.it - a.s.it);
       const byRisk = scored.slice().sort((a,b) => b.s.ri - a.s.ri);
+      const lowEffortHi = scored.filter(x => isLowEffortHighImpact(x.s)).sort((a,b) => impOf(b.s)-impOf(a.s) || a.s.ef-b.s.ef);
+      const lowCostHi   = scored.filter(x => isLowCostHighImpact(x.s)).sort((a,b) => impOf(b.s)-impOf(a.s) || a.s.co-b.s.co);
 
       // themes
       const themes = {};
@@ -1023,16 +1052,24 @@
       }).join('');
 
       const badge = (label, val, color) => `<span class="ai-b" style="color:${color};border-color:${color}33;background:${color}14;">${label} ${val}</span>`;
+      const lens = (title, sub, color, arr, rightFn) => `
+        <div class="prio-lens" style="--c:${color};">
+          <div class="prio-card-h">${title} <span>${sub}</span></div>
+          ${arr.length ? arr.slice(0,6).map(x => row(x, rightFn(x))).join('') : '<div style="color:var(--faint);font-size:12.5px;padding:8px 0;">— tidak ada di grup ini —</div>'}
+        </div>`;
 
       view.innerHTML = `
         <div class="prio-head">
           <div><div class="section-h" style="margin:0;">🎯 Prioritas AI</div>
-            <div style="font-size:12.5px;color:var(--muted);margin-top:2px;">${total} ide dinilai AI${aiScoredAt ? ' · '+new Date(aiScoredAt).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : ''} · penilaian dari analisa AI, bukan jumlah like</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px;">${allScored.length} ide dinilai AI${aiScoredAt ? ' · '+new Date(aiScoredAt).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : ''} · penilaian dari analisa AI, bukan jumlah like</div>
           </div>
         </div>
 
+        <div class="grp-chips">${groupChips}</div>
+        <div style="font-size:13px;font-weight:800;margin:-4px 0 12px;">${GROUPS[activeGroup]} · <span style="color:var(--muted);font-weight:600;">${total} ide</span></div>
+
         <div class="prio-explain">
-          <b>Cara baca:</b> tiap ide dinilai AI 1–5 di <b>Impact</b> (bisnis+tim), <b>Effort</b>, <b>Biaya</b>, dan <b>Risiko kalau diabaikan</b>. <b>Skor Prioritas = (Impact + Risiko) ÷ Effort</b> — makin tinggi makin worth dikerjain duluan.
+          <b>Cara baca:</b> tiap ide dinilai AI 1–5 di <b>${activeGroup === 'sports' ? 'Kebersamaan + Keseruan' : 'Impact (bisnis + tim)'}</b>, <b>${activeGroup === 'sports' ? 'Kesulitan' : 'Effort'}</b>, <b>Biaya</b>, dan <b>${activeGroup === 'sports' ? 'Seberapa ditunggu tim' : 'Risiko kalau diabaikan'}</b>. <b>Skor Prioritas = (Impact + Risiko) ÷ Effort</b> — makin tinggi makin worth ${activeGroup === 'sports' ? 'diadain' : 'dikerjain'} duluan.
           <div class="prio-legend">
             <span><i style="background:var(--green);"></i> 🟢 Kerjain Duluan — impact tinggi, effort rendah</span>
             <span><i style="background:var(--blue);"></i> 🔵 Proyek Besar — impact tinggi, effort besar</span>
@@ -1043,10 +1080,11 @@
         </div>
 
         <div class="prio-kpis">
-          <div class="prio-kpi" style="--c:var(--green);"><div class="v">${quickWins.length}</div><div class="l">🟢 Quick Win</div></div>
-          <div class="prio-kpi" style="--c:var(--blue);"><div class="v">${bizImpact.length}</div><div class="l">💼 Impact bisnis</div></div>
-          <div class="prio-kpi" style="--c:var(--green);"><div class="v">${prideList.length}</div><div class="l">💚 Bikin bangga</div></div>
-          <div class="prio-kpi" style="--c:var(--red);"><div class="v">${byRisk.filter(x=>x.s.ri>=4).length}</div><div class="l">⚠️ Risiko tinggi</div></div>
+          <div class="prio-kpi" style="--c:var(--green);"><div class="v">${quickWins.length}</div><div class="l">${activeGroup === 'sports' ? '🟢 Gampang & seru' : '🟢 Quick Win'}</div></div>
+          <div class="prio-kpi" style="--c:var(--amber);"><div class="v">${lowCostHi.length}</div><div class="l">💰 Murah, impact besar</div></div>
+          <div class="prio-kpi" style="--c:var(--blue);"><div class="v">${bizImpact.length}</div><div class="l">${activeGroup === 'sports' ? '🤝 Bikin kompak' : '💼 Impact bisnis'}</div></div>
+          <div class="prio-kpi" style="--c:var(--green);"><div class="v">${activeGroup === 'sports' ? byTeam.filter(x=>x.s.it>=4).length : prideList.length}</div><div class="l">${activeGroup === 'sports' ? '🎉 Paling seru' : '💚 Bikin bangga'}</div></div>
+          <div class="prio-kpi" style="--c:var(--red);"><div class="v">${byRisk.filter(x=>x.s.ri>=4).length}</div><div class="l">${activeGroup === 'sports' ? '🔥 Paling ditunggu' : '⚠️ Risiko tinggi'}</div></div>
           <div class="prio-kpi" style="--c:var(--muted);"><div class="v">${unscored}</div><div class="l">⏳ Belum dinilai</div></div>
         </div>
 
@@ -1081,28 +1119,32 @@
         </div>
 
         <div class="prio-grid">
-          <div class="prio-lens" style="--c:var(--green);">
-            <div class="prio-card-h">🎯 Kerjain Duluan <span>low effort · high impact</span></div>
-            ${byPrio.slice(0,6).map(x => row(x, `<span class="prio-score" style="color:var(--green);">${prio10(x.s).toFixed(1)}</span>`)).join('')}
-          </div>
-          <div class="prio-lens" style="--c:var(--blue);">
-            <div class="prio-card-h">💼 Impact Bisnis Tertinggi <span>langsung ke bisnis</span></div>
-            ${byBiz.slice(0,6).map(x => row(x, badge('bisnis', x.s.ib+'/5', 'var(--blue)'))).join('')}
-          </div>
-          <div class="prio-lens" style="--c:var(--green);">
-            <div class="prio-card-h">💚 Bikin Tim Bangga <span>biaya ≈0, dihargai walau sepele</span></div>
-            ${(byPride.length?byPride:byTeam).slice(0,6).map(x => row(x, badge('tim', x.s.it+'/5', 'var(--green)'))).join('')}
-          </div>
-          <div class="prio-lens" style="--c:var(--red);">
-            <div class="prio-card-h">⚠️ Risiko Kalau Diabaikan <span>rugi/masalah kalau dibiarkan</span></div>
-            ${byRisk.slice(0,6).map(x => row(x, badge('risiko', x.s.ri+'/5', 'var(--red)'))).join('')}
-          </div>
+          ${lens('🎯 Low Effort × High Impact', 'gampang & langsung ngena — kerjain duluan', 'var(--green)',
+            (lowEffortHi.length?lowEffortHi:byPrio), x => `<span class="prio-score" style="color:var(--green);">${prio10(x.s).toFixed(1)}</span>`)}
+          ${lens('💰 Low Cost × High Impact', 'murah tapi dampak besar', 'var(--amber)',
+            lowCostHi, x => badge('biaya', x.s.co+'/5', 'var(--amber)'))}
+          ${lens(L.ibT, activeGroup === 'sports' ? 'paling nambah kekompakan' : 'langsung ke bisnis', 'var(--blue)',
+            byBiz, x => badge(L.ib, x.s.ib+'/5', 'var(--blue)'))}
+          ${lens(L.itT, activeGroup === 'sports' ? 'paling banyak yang ikut & senang' : 'biaya ≈0, dihargai walau sepele', 'var(--green)',
+            (activeGroup === 'sports' ? byTeam : (byPride.length?byPride:byTeam)), x => badge(L.it, x.s.it+'/5', 'var(--green)'))}
+          ${lens(L.riT, activeGroup === 'sports' ? 'kecewa kalau nggak diadain' : 'rugi/masalah kalau dibiarkan', 'var(--red)',
+            byRisk, x => badge('risiko', x.s.ri+'/5', 'var(--red)'))}
+          ${lens('🏆 Skor Prioritas Tertinggi', '(impact + risiko) ÷ effort', 'var(--accent)',
+            byPrio, x => `<span class="prio-score" style="color:var(--accent);">${prio10(x.s).toFixed(1)}</span>`)}
         </div>
 
         <div class="prio-themes">
           <div class="prio-card-h">🏷️ Tema Teratas <span>ide paling banyak tentang apa</span></div>
           ${themeRows.map(([t,n]) => `<div class="th-row"><span class="th-l">${esc(t)}</span><div class="th-bar"><div style="width:${Math.round(n/themeMax*100)}%;"></div></div><b>${n}</b></div>`).join('')}
         </div>`;
+
+      // group switcher (🏢 perusahaan · 📦 produk · 🏆 sports day)
+      view.querySelectorAll('[data-grp]').forEach(el => el.addEventListener('click', () => {
+        activeGroup = el.dataset.grp;
+        prioFilt = { q:'', quad:'all', theme:'all', sort:'prio' };
+        renderPriority();
+        document.querySelector('.grp-chips').scrollIntoView({ block:'start' });
+      }));
 
       // wire the full ranked table
       prioScored = scored;
