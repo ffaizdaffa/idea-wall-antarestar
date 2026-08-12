@@ -119,7 +119,11 @@ function saveIdeaWall() {
 function ideasJsonString() {
   if (ideasJsonCache) return ideasJsonCache;
   const wall = loadIdeaWall();
-  const light = wall.ideas.map(i => { const { likedBy, ...rest } = i; return rest; });
+  const light = wall.ideas.map(i => {
+    const { likedBy, memberId, ...rest } = i;
+    if (i.anon) return { ...rest, name: 'Anonim', memberUsername: null, memberAvatar: '' };
+    return { ...rest, memberId };
+  });
   ideasJsonCache = JSON.stringify({ ideas: light });
   return ideasJsonCache;
 }
@@ -642,7 +646,7 @@ app.get('/api/stream', (req, res) => {
 
 app.post('/api/idea', (req, res) => {
   const wall = loadIdeaWall();
-  const { text, photo, name, category } = req.body || {};
+  const { text, photo, name, category, anon } = req.body || {};
   if (!text || !String(text).trim()) return res.status(400).json({ error: 'Teks ide wajib diisi' });
   const cat = category === 'sports_day' ? 'sports_day' : 'ide_perbaikan';
   const member = getMember(req);
@@ -663,10 +667,13 @@ app.post('/api/idea', (req, res) => {
   }
   const idea = {
     id: wall.nextId++,
-    name: member ? member.name : (name ? String(name).slice(0, 60) : 'Anonim'),
+    // anon: nama pengirim disembunyikan dari publik, tapi memberId tetap disimpan
+    //       supaya pengirim bisa melacak idenya & HR bisa menindaklanjuti.
+    anon: !!(member && anon),
+    name: (member && anon) ? 'Anonim' : (member ? member.name : (name ? String(name).slice(0, 60) : 'Anonim')),
     memberId: member ? member.id : null,
-    memberUsername: member ? member.username : null,
-    memberAvatar: member ? member.avatar : '',
+    memberUsername: (member && anon) ? null : (member ? member.username : null),
+    memberAvatar: (member && anon) ? '' : (member ? member.avatar : ''),
     text: String(text).slice(0, 500),
     category: cat,
     status: 'pending',
@@ -683,8 +690,10 @@ app.post('/api/idea', (req, res) => {
   };
   wall.ideas.unshift(idea);
   saveIdeaWall();
-  broadcast('idea', idea);
-  res.json({ ok: true, idea });
+  const pub = (() => { const { likedBy, memberId, ...rest } = idea;
+    return idea.anon ? { ...rest, name: 'Anonim', memberUsername: null, memberAvatar: '' } : { ...rest, memberId }; })();
+  broadcast('idea', pub);
+  res.json({ ok: true, idea: pub });
 });
 
 app.post('/api/idea/:id/like', (req, res) => {
@@ -797,6 +806,24 @@ app.delete('/api/idea/:id', requireAdmin, (req, res) => {
   saveIdeaWall();
   broadcast('delete', { id });
   res.json({ ok: true });
+});
+
+app.get('/api/me/ideas', (req, res) => {
+  const m = getMember(req);
+  if (!m) return res.json({ ideas: [] });
+  const wall = loadIdeaWall();
+  const mine = wall.ideas.filter(i => i.memberId === m.id)
+    .map(i => { const { likedBy, ...rest } = i; return rest; });
+  res.json({ ideas: mine });
+});
+
+app.get('/api/admin/idea-authors', requireAdmin, (_req, res) => {
+  const wall = loadIdeaWall();
+  const members = loadMembers().members;
+  const byId = {}; members.forEach(m => { byId[m.id] = m.name; });
+  const out = {};
+  for (const i of wall.ideas) if (i.anon && i.memberId && byId[i.memberId]) out[i.id] = byId[i.memberId];
+  res.json({ authors: out });
 });
 
 // ------------------------------------------------------------

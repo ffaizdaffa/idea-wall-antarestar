@@ -180,6 +180,13 @@
             <div class="eotm-live" id="eotm-live" style="margin-top:16px;"></div>
           </div>
 
+          <label id="anon-row" style="display:none;align-items:flex-start;gap:10px;margin:2px 0 12px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;">
+            <input type="checkbox" id="f-anon" style="width:18px;height:18px;margin-top:1px;accent-color:var(--accent);flex:none;">
+            <span style="font-size:13px;line-height:1.45;">
+              <b style="font-weight:800;">Kirim sebagai Anonim</b><br>
+              <span style="color:var(--muted);font-weight:600;">Namamu tidak tampil ke rekan kerja. HR tetap bisa melihatnya untuk menindaklanjuti idemu.</span>
+            </span>
+          </label>
           <button class="btn-primary" id="submit-btn" type="submit" style="height:52px;border-radius:14px;">🚀 Kirim Ide Sekarang</button>
         </form>
       </div>
@@ -289,6 +296,7 @@
     const eotmLive = document.getElementById('eotm-live');
     const titleEl = document.querySelector('.form-top .title');
     const IDEA_BTN = '🚀 Kirim Ide Sekarang';
+    function anonRowShow() { const r = document.getElementById('anon-row'); if (r) r.style.display = me ? 'flex' : 'none'; }
     const VOTE_BTN = '⭐ Kirim Vote';
 
     let category = 'ide_perbaikan';
@@ -421,6 +429,8 @@
       const text = ta.value.trim();
       if (!text) { toast('Tulis idemu dulu', true); return; }
       const body = { text, category };
+      const anonBox = document.getElementById('f-anon');
+      if (me && anonBox && anonBox.checked) body.anon = true;
       if (photoData) body.photo = photoData;
       if (!me && nameField.value.trim()) body.name = nameField.value.trim();
       submitBtn.disabled = true; submitBtn.textContent = 'Mengirim…';
@@ -445,6 +455,7 @@
     const whoEl = document.getElementById('who');
     fetch('/api/member/me').then(r => r.json()).then(d => {
       me = d.member;
+      anonRowShow();
       if (me) {
         const av = userPill.querySelector('.avatar');
         if (av) av.outerHTML = avatarHTML(me, 32);

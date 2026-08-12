@@ -129,7 +129,7 @@
 
     const listEl = document.getElementById('list');
     const sumEl = document.getElementById('sum');
-    let ideas = [], me = null, filter = 'mine';
+    let ideas = [], me = null, myIdeas = [], filter = 'mine';
 
     const STEPS = ['Diterima', 'Dikerjakan', 'Selesai'];
     function stepper(status) {
@@ -190,7 +190,7 @@
     function render() {
       const wip = ideas.filter(i => i.status === 'in_progress');
       const done = ideas.filter(i => i.status === 'done');
-      const mine = me ? ideas.filter(i => i.memberId && i.memberId === me.id) : [];
+      const mine = myIdeas;   // dari /api/me/ideas — termasuk ide yang dikirim anonim
 
       sumEl.innerHTML = `
         <div class="s-wip"><b>${wip.length}</b><span>Dikerjakan</span></div>
@@ -200,7 +200,7 @@
       const rows = filter === 'mine' ? mine : filter === 'wip' ? wip : done;
       rows.sort((a, b) => b.ts - a.ts);
       listEl.innerHTML = rows.length
-        ? rows.map(i => itemHTML(i, !!(me && i.memberId === me.id))).join('')
+        ? rows.map(i => itemHTML(i, myIdeas.some(x => x.id === i.id))).join('')
         : emptyHTML();
     }
 
@@ -213,11 +213,11 @@
     Promise.all([
       fetch('/api/ideas').then(r => r.json()).catch(() => ({ ideas: [] })),
       fetch('/api/member/me').then(r => r.json()).catch(() => ({ member: null })),
-    ]).then(([d, m]) => {
-      ideas = d.ideas || []; me = m.member || null;
+      fetch('/api/me/ideas').then(r => r.json()).catch(() => ({ ideas: [] })),
+    ]).then(([d, m, mine]) => {
+      ideas = d.ideas || []; me = m.member || null; myIdeas = mine.ideas || [];
       // buka langsung ke tab yang paling berguna
-      const mine = me ? ideas.filter(i => i.memberId === me.id) : [];
-      if (!mine.length) {
+      if (!myIdeas.length) {
         filter = 'wip';
         document.querySelectorAll('.pg-tab').forEach(x => x.setAttribute('aria-selected', String(x.dataset.f === 'wip')));
       }

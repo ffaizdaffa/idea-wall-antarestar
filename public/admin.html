@@ -318,6 +318,7 @@
   .prio-table .ctr{ text-align:center; font-weight:700; }
   .prio-table .sc{ font-weight:900; color:var(--accent); font-size:14px; }
   .qtag{ display:inline-block; font-size:11px; font-weight:700; color:var(--muted); background:var(--chip); border:1px solid var(--border); border-radius:999px; padding:2px 8px; white-space:nowrap; }
+  .anon-real{ font-size:11px; font-weight:800; color:var(--muted); background:var(--chip); border-radius:999px; padding:2px 8px; margin-left:4px; white-space:nowrap; }
   /* AI badges inside Kelola Ide cards */
   .idea-ai{ display:flex; flex-wrap:wrap; gap:5px; margin:8px 0 2px; align-items:center; }
   .idea-ai .aiscore{ font-weight:900; font-size:12px; color:#fff; background:var(--accent); border-radius:999px; padding:3px 9px; }
@@ -705,7 +706,7 @@
       return `<div class="idea" data-id="${idea.id}">
         <div class="idea-pad">
           <div class="idea-top">${avHTML(idea,40)}
-            <div><div class="idea-name">${esc(idea.name)}</div><div class="idea-meta">${formatTime(idea.ts)}</div></div>
+            <div><div class="idea-name">${esc(idea.name)}${anonAuthors[idea.id] ? ` <span class="anon-real" title="Terlihat hanya oleh admin">🔒 ${esc(anonAuthors[idea.id])}</span>` : ''}</div><div class="idea-meta">${formatTime(idea.ts)}</div></div>
             <span class="idea-num">#${pad4(idea.id)}</span></div>
           <p class="idea-text">${esc(idea.text)}</p>
           ${photo}
@@ -975,7 +976,7 @@
     }
 
     // ---------- Prioritas AI ----------
-    let aiScores = null, aiScoredAt = null;
+    let aiScores = null, aiScoredAt = null, anonAuthors = {};
     const THEME_COLORS = {}; // consistent-ish colors per theme (assigned on render)
     function prioOf(s){ return s ? ((s.ib + s.it + s.ri) / s.ef) : 0; }        // higher = do first
     function prio10(s){ return s ? Math.min(10, Math.round(prioOf(s) / 1.5 * 10) / 10) : 0; }
@@ -1261,6 +1262,7 @@
         ideas = d.ideas || []; renderList(); connectSSE();
         fetch('/api/eotm').then(r => r.json()).then(s => { dashEotm = s; renderDashboard(); }).catch(() => {});
         fetch('/api/admin/ai-scores').then(r => r.json()).then(d => { aiScores = d.scores || {}; aiScoredAt = d.scoredAt || null; renderList(); }).catch(() => {});
+        fetch('/api/admin/idea-authors').then(r => r.json()).then(d => { anonAuthors = d.authors || {}; renderList(); }).catch(() => {});
       }).catch(() => { document.getElementById('list').innerHTML = '<div class="empty">Gagal memuat ide.</div>'; });
     }
 
