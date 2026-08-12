@@ -291,6 +291,18 @@
   .prio-legend{ display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
   .prio-legend span{ font-size:11.5px; color:var(--muted); font-weight:600; display:inline-flex; align-items:center; gap:5px; }
   .prio-legend i{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .bk-group{ margin-bottom:10px; }
+  .bk-g-title{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; }
+  .bk-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:7px; }
+  .bk-chip{ display:flex; align-items:center; justify-content:space-between; gap:8px; text-align:left;
+    border:1.5px solid var(--border); background:var(--card); font-family:inherit; font-weight:700; font-size:12px;
+    color:var(--text); padding:9px 12px; border-radius:10px; }
+  .bk-chip:hover{ border-color:var(--accent); }
+  .bk-chip.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .bk-n{ font-weight:900; font-size:14px; color:var(--muted); flex:none; }
+  .bk-chip.on .bk-n{ color:#fff; }
+  .bk-clear{ border:none; background:var(--chip); color:var(--muted); font-family:inherit; font-weight:700;
+    font-size:12px; padding:7px 14px; border-radius:999px; margin-top:4px; }
   .prio-table-card{ background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:14px 16px; margin-bottom:16px; }
   .prio-controls{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
   .prio-sel{ border:1.5px solid var(--border); background:var(--card); color:var(--text); font-family:inherit; font-weight:700; font-size:12.5px; padding:8px 12px; border-radius:10px; cursor:pointer; }
@@ -979,6 +991,23 @@
     function isPride(s){ return s && s.it >= 4 && s.co <= 1; }
     function isLowCostHighImpact(s){ return s && s.co <= 2 && impOf(s) >= 3; }
     function isLowEffortHighImpact(s){ return s && s.ef <= 2 && impOf(s) >= 3; }
+    // 3 matriks × 4 kuadran — semua kombinasi, dipakai buat filter tabel
+    const HI = s => impOf(s) >= 3;                 // impact tinggi
+    const BUCKETS = [
+      { g:'Effort × Impact', k:'ef-hi', l:'🟢 Low Effort + High Impact', d:'gampang & ngena — kerjain duluan', f:s=>s.ef<=2.5 && HI(s) },
+      { g:'Effort × Impact', k:'ef-hh', l:'🔵 High Effort + High Impact', d:'proyek besar — jadwalkan & anggarkan', f:s=>s.ef>2.5 && HI(s) },
+      { g:'Effort × Impact', k:'ef-ll', l:'⚪ Low Effort + Low Impact', d:'sambilan — kerjain kalau senggang', f:s=>s.ef<=2.5 && !HI(s) },
+      { g:'Effort × Impact', k:'ef-hl', l:'🔴 High Effort + Low Impact', d:'hindari — buang tenaga', f:s=>s.ef>2.5 && !HI(s) },
+      { g:'Biaya × Impact', k:'co-hi', l:'💰 Low Cost + High Impact', d:'murah tapi dampak besar', f:s=>s.co<=2 && HI(s) },
+      { g:'Biaya × Impact', k:'co-hh', l:'💸 High Cost + High Impact', d:'mahal tapi worth — butuh approval', f:s=>s.co>2 && HI(s) },
+      { g:'Biaya × Impact', k:'co-ll', l:'🪙 Low Cost + Low Impact', d:'murah, dampak kecil — bonus aja', f:s=>s.co<=2 && !HI(s) },
+      { g:'Biaya × Impact', k:'co-hl', l:'🚫 High Cost + Low Impact', d:'mahal & kurang ngena — tolak', f:s=>s.co>2 && !HI(s) },
+      { g:'Urgensi × Penting (Eisenhower)', k:'ei-ui', l:'🔥 Urgent + Penting', d:'kerjakan sekarang', f:s=>s.ri>=4 && HI(s) },
+      { g:'Urgensi × Penting (Eisenhower)', k:'ei-ni', l:'📅 Not Urgent + Penting', d:'jadwalkan — jangan sampai lupa', f:s=>s.ri<4 && HI(s) },
+      { g:'Urgensi × Penting (Eisenhower)', k:'ei-un', l:'👥 Urgent + Kurang Penting', d:'delegasikan', f:s=>s.ri>=4 && !HI(s) },
+      { g:'Urgensi × Penting (Eisenhower)', k:'ei-nn', l:'🗑️ Not Urgent + Kurang Penting', d:'lepas dulu', f:s=>s.ri<4 && !HI(s) },
+    ];
+    const bucketFn = k => (BUCKETS.find(b=>b.k===k)||{}).f;
     // grup ide: 🏢 perusahaan (internal) · 📦 produk (usulan produk baru) · 🏆 sports day
     function groupOf(idea, s){
       if ((idea.category || '') === 'sports_day') return 'sports';
@@ -1103,17 +1132,30 @@
           </div>
         </div>
 
+        <div class="prio-table-card" style="margin-bottom:14px;">
+          <div class="prio-card-h">🧭 Filter Strategis <span>klik salah satu → tabel di bawah ke-filter</span></div>
+          ${['Effort × Impact','Biaya × Impact','Urgensi × Penting (Eisenhower)'].map(g => `
+            <div class="bk-group"><div class="bk-g-title">${g}</div><div class="bk-row">
+              ${BUCKETS.filter(b=>b.g===g).map(b => {
+                const n = scored.filter(x=>b.f(x.s)).length;
+                return `<button class="bk-chip${prioFilt.bucket===b.k?' on':''}" data-bucket="${b.k}" title="${b.d}">
+                  <span class="bk-l">${b.l}</span><span class="bk-n">${n}</span></button>`;
+              }).join('')}
+            </div></div>`).join('')}
+          <button class="bk-clear" data-bucket="all">✕ Tampilkan semua</button>
+        </div>
+
         <div class="prio-table-card">
           <div class="prio-card-h">📋 Semua Ide <span>diurut prioritas · klik untuk kelola</span></div>
           <div class="prio-controls">
             <input id="prio-q" class="fp-search" style="margin:0;flex:1;min-width:160px;" type="text" placeholder="Cari ide…">
             <select id="prio-quad" class="prio-sel"><option value="all">Semua kuadran</option><option value="qw">🟢 Kerjain Duluan</option><option value="big">🔵 Proyek Besar</option><option value="fill">⚪ Sambilan</option><option value="avoid">🔴 Hindari</option></select>
             <select id="prio-theme" class="prio-sel"><option value="all">Semua tema</option>${themeRows.concat(Object.entries(themes).filter(([t])=>!themeRows.find(r=>r[0]===t))).map(([t])=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>
-            <select id="prio-sort" class="prio-sel"><option value="prio">Urut: Prioritas</option><option value="ib">Impact bisnis</option><option value="it">Impact tim</option><option value="ri">Risiko</option><option value="ef">Effort termudah</option></select>
+            <select id="prio-sort" class="prio-sel"><option value="prio">Urut: Prioritas</option><option value="imp">Impact total</option><option value="ib">Impact bisnis</option><option value="it">Impact tim</option><option value="ri">Risiko</option><option value="ef">Effort termudah</option><option value="efd">Effort terberat</option><option value="co">Biaya termurah</option><option value="cod">Biaya termahal</option></select>
           </div>
           <div class="prio-table-wrap"><table class="prio-table"><thead><tr>
             <th style="width:34px;">#</th><th>Ide</th><th>Tema</th><th>Kuadran</th>
-            <th class="ctr" title="Impact bisnis">💼</th><th class="ctr" title="Impact tim">👥</th><th class="ctr" title="Effort">🔧</th><th class="ctr" title="Risiko diabaikan">⚠️</th><th class="ctr">Skor</th>
+            <th class="ctr" title="Impact bisnis">💼</th><th class="ctr" title="Impact tim">👥</th><th class="ctr" title="Effort">🔧</th><th class="ctr" title="Biaya">💰</th><th class="ctr" title="Risiko diabaikan">⚠️</th><th class="ctr">Skor</th>
           </tr></thead><tbody id="prio-tbody"></tbody></table></div>
           <div id="prio-count" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
         </div>
@@ -1141,9 +1183,16 @@
       // group switcher (🏢 perusahaan · 📦 produk · 🏆 sports day)
       view.querySelectorAll('[data-grp]').forEach(el => el.addEventListener('click', () => {
         activeGroup = el.dataset.grp;
-        prioFilt = { q:'', quad:'all', theme:'all', sort:'prio' };
+        prioFilt = { q:'', quad:'all', theme:'all', sort:'prio', bucket:'all' };
         renderPriority();
         document.querySelector('.grp-chips').scrollIntoView({ block:'start' });
+      }));
+
+      // wire filter strategis (12 kombinasi matriks)
+      view.querySelectorAll('[data-bucket]').forEach(el => el.addEventListener('click', () => {
+        prioFilt.bucket = el.dataset.bucket;
+        view.querySelectorAll('[data-bucket]').forEach(b => b.classList.toggle('on', b.dataset.bucket === prioFilt.bucket && prioFilt.bucket !== 'all'));
+        renderPrioTable();
       }));
 
       // wire the full ranked table
@@ -1163,15 +1212,24 @@
       view.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => openInList(parseInt(el.dataset.open, 10))));
     }
 
-    let prioScored = [], prioFilt = { q:'', quad:'all', theme:'all', sort:'prio' };
+    let prioScored = [], prioFilt = { q:'', quad:'all', theme:'all', sort:'prio', bucket:'all' };
     function renderPrioTable() {
       const tb = document.getElementById('prio-tbody'); if (!tb) return;
       let rows = prioScored.slice();
       if (prioFilt.q) rows = rows.filter(x => (x.i.text||'').toLowerCase().includes(prioFilt.q));
       if (prioFilt.quad !== 'all') rows = rows.filter(x => quadrant(x.s).k === prioFilt.quad);
       if (prioFilt.theme !== 'all') rows = rows.filter(x => (x.s.th||'Lainnya') === prioFilt.theme);
+      if (prioFilt.bucket !== 'all') { const bf = bucketFn(prioFilt.bucket); if (bf) rows = rows.filter(x => bf(x.s)); }
       const sk = prioFilt.sort;
-      rows.sort((a,b) => sk === 'prio' ? prioOf(b.s)-prioOf(a.s) : sk === 'ef' ? a.s.ef-b.s.ef || prioOf(b.s)-prioOf(a.s) : (b.s[sk]-a.s[sk]) || prioOf(b.s)-prioOf(a.s));
+      const tie=(a,b)=>prioOf(b.s)-prioOf(a.s);
+      rows.sort((a,b) =>
+        sk==='prio' ? tie(a,b) :
+        sk==='imp'  ? impOf(b.s)-impOf(a.s) || tie(a,b) :
+        sk==='ef'   ? a.s.ef-b.s.ef || tie(a,b) :
+        sk==='efd'  ? b.s.ef-a.s.ef || tie(a,b) :
+        sk==='co'   ? a.s.co-b.s.co || tie(a,b) :
+        sk==='cod'  ? b.s.co-a.s.co || tie(a,b) :
+        (b.s[sk]-a.s[sk]) || tie(a,b));
       const cut = (t,n) => { t = String(t||''); return t.length > n ? t.slice(0,n-1)+'…' : t; };
       tb.innerHTML = rows.map((x,idx) => {
         const s = x.s, q = quadrant(s);
@@ -1180,11 +1238,11 @@
           <td class="txt"><div>${esc(cut(x.i.text,70))}</div><div class="rs">${esc(s.rs||'')}</div></td>
           <td><span class="qtag">${esc(s.th||'')}</span></td>
           <td><span class="qtag" style="color:${q.c};border-color:${q.c}44;">${q.l}</span></td>
-          <td class="ctr">${s.ib}</td><td class="ctr">${s.it}</td><td class="ctr">${s.ef}</td>
+          <td class="ctr">${s.ib}</td><td class="ctr">${s.it}</td><td class="ctr">${s.ef}</td><td class="ctr">${s.co}</td>
           <td class="ctr" style="color:${s.ri>=4?'var(--red)':'inherit'};font-weight:${s.ri>=4?800:600};">${s.ri}</td>
           <td class="ctr sc">${prio10(s).toFixed(1)}</td>
         </tr>`;
-      }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">Tidak ada ide cocok filter.</td></tr>';
+      }).join('') || '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px;">Tidak ada ide cocok filter.</td></tr>';
       const cnt = document.getElementById('prio-count'); if (cnt) cnt.textContent = 'Menampilkan ' + rows.length + ' dari ' + prioScored.length + ' ide';
       tb.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => openInList(parseInt(el.dataset.open, 10))));
     }

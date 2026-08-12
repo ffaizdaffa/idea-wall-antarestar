@@ -2,6 +2,10 @@ node_modules/
 
 # Runtime data — never commit real ideas, members, sessions, uploads
 data/*.json
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/_snap/
 !data/*.example.json
 public/uploads/*
 !public/uploads/.gitkeep

@@ -13,6 +13,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const crypto = require('crypto');
+const store = require('./db'); // SQLite storage (menggantikan file JSON)
 
 const app = express();
 const PORT = process.env.PORT || 3030;
@@ -100,12 +101,8 @@ let ideaWallData = null;
 function loadIdeaWall() {
   if (ideaWallData) return ideaWallData;
   try {
-    if (fs.existsSync(IDEA_WALL_FILE)) {
-      ideaWallData = JSON.parse(fs.readFileSync(IDEA_WALL_FILE, 'utf8'));
-    } else {
-      ideaWallData = seedIdeas();
-      saveIdeaWall();
-    }
+    ideaWallData = store.readIdeaWall();
+    if (!ideaWallData.ideas.length) { ideaWallData = seedIdeas(); saveIdeaWall(); }
   } catch (e) {
     ideaWallData = { ideas: [], nextId: 1 };
   }
@@ -116,7 +113,7 @@ function loadIdeaWall() {
 let ideasJsonCache = null; // cache string response /api/ideas (di-rebuild saat ada perubahan)
 function saveIdeaWall() {
   ideasJsonCache = null; // invalidate cache
-  try { fs.writeFileSync(IDEA_WALL_FILE, JSON.stringify(ideaWallData, null, 2)); } catch (e) { /* ignore */ }
+  try { store.writeIdeaWall(ideaWallData); } catch (e) { /* ignore */ }
 }
 // Response /api/ideas: pre-stringify sekali + buang field internal (likedBy) → ringan & hemat CPU saat banyak request bareng
 function ideasJsonString() {
@@ -131,14 +128,14 @@ let membersCache = null;
 function loadMembers() {
   if (membersCache) return membersCache;
   try {
-    if (fs.existsSync(MEMBERS_FILE)) { membersCache = JSON.parse(fs.readFileSync(MEMBERS_FILE, 'utf8')); return membersCache; }
+    membersCache = store.readMembers(); return membersCache;
   } catch (e) { /* ignore */ }
   membersCache = { members: [] };
   return membersCache;
 }
 function saveMembers(list) {
   membersCache = list; // jaga cache tetap sinkron
-  try { fs.writeFileSync(MEMBERS_FILE, JSON.stringify(list, null, 2)); } catch (e) { /* ignore */ }
+  try { store.writeMembers(list); } catch (e) { /* ignore */ }
 }
 
 // ---- Employee of the Month (EOTM) persistence ----
@@ -149,13 +146,13 @@ let eotmData = null;
 function loadEotm() {
   if (eotmData) return eotmData;
   try {
-    if (fs.existsSync(EOTM_FILE)) eotmData = JSON.parse(fs.readFileSync(EOTM_FILE, 'utf8'));
-    else { eotmData = defaultEotm(); saveEotm(); }
+    eotmData = store.readDoc('eotm', null);
+    if (!eotmData) { eotmData = defaultEotm(); saveEotm(); }
   } catch (e) { eotmData = defaultEotm(); }
   if (!eotmData.votes || typeof eotmData.votes !== 'object') eotmData.votes = {};
   return eotmData;
 }
-function saveEotm() { try { fs.writeFileSync(EOTM_FILE, JSON.stringify(eotmData, null, 2)); } catch (e) { /* ignore */ } }
+function saveEotm() { try { store.writeDoc('eotm', eotmData); } catch (e) { /* ignore */ } }
 function normName(s) { return String(s || '').trim().replace(/\s+/g, ' ').toLowerCase(); }
 function buildEotmTally(e) {
   const byName = {}; let total = 0;
@@ -199,7 +196,7 @@ const memberSessions = new Map(); // token -> { memberId, ts }
 const adminSessions = new Map();  // token -> { ts }
 (function loadSessions() {
   try {
-    const s = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+    const s = store.readDoc('sessions', { member: {}, admin: {} }) || {};
     for (const [k, v] of Object.entries(s.member || {})) memberSessions.set(k, v);
     for (const [k, v] of Object.entries(s.admin || {})) adminSessions.set(k, v);
   } catch (e) { /* belum ada file, normal */ }
@@ -209,10 +206,10 @@ function saveSessions() {
   clearTimeout(_saveT);
   _saveT = setTimeout(() => {
     try {
-      fs.writeFileSync(SESSIONS_FILE, JSON.stringify({
+      store.writeDoc('sessions', {
         member: Object.fromEntries(memberSessions),
         admin: Object.fromEntries(adminSessions),
-      }));
+      });
     } catch (e) { /* ignore */ }
   }, 500); // debounce 0.5s biar nggak nulis tiap request
 }
@@ -273,13 +270,13 @@ const NOTIF_FILE = path.join(DATA_DIR, 'notifications.json');
 let notifData = null;
 function loadNotif() {
   if (notifData) return notifData;
-  try { notifData = fs.existsSync(NOTIF_FILE) ? JSON.parse(fs.readFileSync(NOTIF_FILE, 'utf8')) : {}; }
+  try { notifData = store.readNotif(); }
   catch (e) { notifData = {}; }
   if (!notifData || typeof notifData !== 'object') notifData = {};
   return notifData;
 }
 let _notifT = null;
-function saveNotif() { clearTimeout(_notifT); _notifT = setTimeout(() => { try { fs.writeFileSync(NOTIF_FILE, JSON.stringify(notifData)); } catch (e) { /* ignore */ } }, 400); }
+function saveNotif() { clearTimeout(_notifT); _notifT = setTimeout(() => { try { store.writeNotif(notifData); } catch (e) { /* ignore */ } }, 400); }
 function pushNotif(memberId, text, link) {
   if (!memberId) return;
   const n = loadNotif();
@@ -311,14 +308,14 @@ const GAME_FILE = path.join(DATA_DIR, 'gamescores.json');
 let gameData = null;
 function loadGame() {
   if (gameData) return gameData;
-  try { gameData = fs.existsSync(GAME_FILE) ? JSON.parse(fs.readFileSync(GAME_FILE, 'utf8')) : null; }
+  try { gameData = store.readGame(); }
   catch (e) { gameData = null; }
   if (!gameData || typeof gameData !== 'object') gameData = { entries: {}, plays: 0 };
   if (!gameData.entries) gameData.entries = {};
   return gameData;
 }
 let _gameT = null;
-function saveGame() { clearTimeout(_gameT); _gameT = setTimeout(() => { try { fs.writeFileSync(GAME_FILE, JSON.stringify(gameData)); } catch (e) { /* ignore */ } }, 400); }
+function saveGame() { clearTimeout(_gameT); _gameT = setTimeout(() => { try { store.writeGame(gameData); } catch (e) { /* ignore */ } }, 400); }
 function gameRanked(g) {
   return Object.entries(g.entries)
     .map(([k, v]) => ({ k, name: v.name, score: v.score, ts: v.ts }))
@@ -811,13 +808,13 @@ const AI_SCORES_FILE = path.join(DATA_DIR, 'ai-scores.json');
 let aiScoresData = null;
 function loadAiScores() {
   if (aiScoresData) return aiScoresData;
-  try { aiScoresData = fs.existsSync(AI_SCORES_FILE) ? JSON.parse(fs.readFileSync(AI_SCORES_FILE, 'utf8')) : null; }
+  try { aiScoresData = store.readAiScores(); }
   catch (e) { aiScoresData = null; }
   if (!aiScoresData || typeof aiScoresData !== 'object') aiScoresData = { scores: {}, scoredAt: null };
   if (!aiScoresData.scores) aiScoresData.scores = {};
   return aiScoresData;
 }
-function saveAiScores() { try { fs.writeFileSync(AI_SCORES_FILE, JSON.stringify(aiScoresData)); } catch (e) { /* ignore */ } }
+function saveAiScores() { try { store.writeAiScores(aiScoresData); } catch (e) { /* ignore */ } }
 
 app.get('/api/admin/ai-scores', requireAdmin, (_req, res) => {
   const d = loadAiScores();
@@ -868,7 +865,7 @@ let employeesCache = null;
 function loadEmployees() {
   if (employeesCache) return employeesCache;
   try {
-    const d = JSON.parse(fs.readFileSync(EMPLOYEES_FILE, 'utf8'));
+    const d = store.readDoc('employees', []);
     employeesCache = Array.isArray(d) ? d : (Array.isArray(d.names) ? d.names : []);
   } catch (e) { employeesCache = []; }
   return employeesCache;
